@@ -1,502 +1,626 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" href="./style.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pen</title>
-  </head>
-  <body>
-
-    <script src="./script.js"></script>
-  </body>
-</html>
-<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>休觀Lavender & Purple Pastel Portfolio</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts for Cute Typography -->
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-    <!-- Tailwind Theme Configuration -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        purpleBg: '#FAF5FF',
-                        purpleLight: '#F3E8FF',
-                        purpleSoft: '#E9D5FF',
-                        purplePastel: '#D8B4FE',
-                        purpleMain: '#C084FC',
-                        purpleDark: '#A855F7',
-                        purpleDeep: '#7E22CE',
-                        purpleNight: '#3B0764',
-                        purplePink: '#F472B6',
-                        goldAccent: '#FBBF24',
-                    },
-                    fontFamily: {
-                        cute: ['"Zen Maru Gothic"', '"Fredoka"', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
+    <title>夢幻紫迷因產生器 ✨ Cute Meme Generator</title>
+    
+    <!-- 引入可愛圓潤與標題用字體 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Mochiy+Pop+One&family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
+    
+    <!-- 引入 html2canvas CDN (用於將 DOM 轉為圖片下載) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
+        /* -------------------------------------------------------------
+           [CSS 變數設定] 統一管理網頁主題顏色與字型
+           ------------------------------------------------------------- */
+        :root {
+            --primary-purple: #9d4edf;
+            --light-purple: #e0aaff;
+            --soft-bg-1: #3c096c;
+            --soft-bg-2: #240046;
+            --card-glass: rgba(255, 255, 255, 0.15);
+            --card-border: rgba(255, 255, 255, 0.25);
+            --text-color: #ffffff;
+            --font-main: 'Fredoka', 'Noto Sans TC', sans-serif;
+            --font-meme: 'Mochiy Pop One', 'Impact', sans-serif;
+        }
+
+        /* 全局基礎重設 */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body {
-            font-family: 'Zen Maru Gothic', 'Fredoka', sans-serif;
-            background: radial-gradient(circle at 50% 15%, #FAF5FF 0%, #E9D5FF 45%, #C084FC 100%);
-            color: #3B0764;
+            font-family: var(--font-main);
+            background: linear-gradient(135deg, #10002b 0%, #240046 35%, #3c096c 70%, #5a189a 100%);
+            color: var(--text-color);
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 20px;
+            position: relative;
             overflow-x: hidden;
-            position: relative;
         }
 
-        /* Floating background particles */
-        .bg-sparkle {
-            position: absolute;
-            pointer-events: none;
-            animation: floatParticle 5s ease-in-out infinite;
-        }
-
-        @keyframes floatParticle {
-            0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
-            50% { transform: translateY(-18px) rotate(12deg) scale(1.15); }
-        }
-
-        /* Avatar glow effect */
-        @keyframes purpleGlow {
-            0%, 100% { filter: drop-shadow(0 0 12px rgba(192, 132, 252, 0.8)); }
-            50% { filter: drop-shadow(0 0 26px rgba(168, 85, 247, 1)); }
-        }
-
-        /* 3D Claymorphism Unlocked Card */
-        .card-3d-unlocked {
-            background: linear-gradient(135deg, #FFFFFF 0%, #FAF5FF 100%);
-            border: 3.5px solid #C084FC;
-            box-shadow: 0 8px 0 0 #A855F7, 0 14px 22px -4px rgba(168, 85, 247, 0.35);
-            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .card-3d-unlocked:hover {
-            transform: translateY(-8px) scale(1.03);
-            box-shadow: 0 16px 0 0 #A855F7, 0 22px 30px -5px rgba(168, 85, 247, 0.45);
-            border-color: #9333EA;
-        }
-
-        .card-3d-unlocked:active {
-            transform: translateY(2px) scale(0.98);
-            box-shadow: 0 4px 0 0 #A855F7, 0 6px 12px -2px rgba(168, 85, 247, 0.3);
-        }
-
-        /* Locked Card Styling */
-        .card-locked {
-            background: linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 100%);
-            border: 3px solid #E9D5FF;
-            box-shadow: 0 6px 0 0 #C084FC, 0 8px 16px -4px rgba(192, 132, 252, 0.25);
-            transition: all 0.2s ease;
-            position: relative;
-            cursor: not-allowed;
-        }
-
-        .card-locked:hover {
-            animation: lockShake 0.4s ease-in-out;
-            background: #F3E8FF;
-            border-color: #C084FC;
-        }
-
-        @keyframes lockShake {
-            0%, 100% { transform: translateX(0); }
-            20% { transform: translateX(-5px) rotate(-2deg); }
-            40% { transform: translateX(5px) rotate(2deg); }
-            60% { transform: translateX(-3px) rotate(-1deg); }
-            80% { transform: translateX(3px) rotate(1deg); }
-        }
-
-        /* Shiny Sweep Effect for Unlocked Cards */
-        .shiny-sweep::before {
-            content: '';
-            position: absolute;
+        /* 背景飄浮夢幻粒子效果 */
+        .sparkle-bg {
+            position: fixed;
             top: 0;
-            left: -120%;
-            width: 70%;
-            height: 100%;
-            background: linear-gradient(
-                90deg,
-                transparent,
-                rgba(255, 255, 255, 0.8),
-                transparent
-            );
-            transform: skewX(-25deg);
-            transition: 0.65s ease-in-out;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 0;
+            background-image: 
+                radial-gradient(circle at 20% 30%, rgba(224, 170, 255, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(157, 78, 221, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.08) 0%, transparent 60%);
         }
 
-        .shiny-sweep:hover::before {
-            left: 170%;
+        /* 主要標題樣式 */
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            z-index: 1;
         }
 
-        /* Dynamic EXP Bar Animation */
-        .exp-bar-fill {
-            background: linear-gradient(90deg, #C084FC 0%, #F472B6 50%, #FBBF24 100%);
-            background-size: 200% 200%;
-            animation: gradientShift 3s ease infinite;
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #f72585;
+            background: linear-gradient(45deg, #ff9e00, #e0aaff, #7209b7, #4cc9f0);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientGlow 6s ease infinite;
+            text-shadow: 0 0 20px rgba(224, 170, 255, 0.4);
+            letter-spacing: 1px;
         }
 
-        @keyframes gradientShift {
+        header p {
+            font-size: 0.95rem;
+            color: #e0aaff;
+            opacity: 0.85;
+            margin-top: 6px;
+        }
+
+        @keyframes gradientGlow {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
 
-        /* Custom Locked Tooltip */
-        .locked-tooltip {
-            visibility: hidden;
-            opacity: 0;
-            transition: opacity 0.2s ease, transform 0.2s ease;
-            transform: translateY(8px);
+        /* 雙欄主容器 (主機版左控制右預覽，手機版自動直排) */
+        .app-container {
+            display: flex;
+            flex-direction: row;
+            gap: 25px;
+            width: 100%;
+            max-width: 1100px;
+            z-index: 1;
+            margin-bottom: 30px;
         }
 
-        .card-locked:hover .locked-tooltip {
-            visibility: visible;
-            opacity: 1;
-            transform: translateY(0);
+        /* 控制面板卡片 (玻璃擬物化風格) */
+        .control-panel {
+            flex: 1;
+            background: var(--card-glass);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .panel-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #e0aaff;
+            border-bottom: 2px dashed rgba(224, 170, 255, 0.3);
+            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 表單控制區塊與標籤 */
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .control-group label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #f1c0e8;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .control-group label span.val-badge {
+            background: rgba(157, 78, 221, 0.4);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            color: #ffffff;
+        }
+
+        /* 自訂上傳檔案按鈕外觀 */
+        .file-upload-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .btn-upload {
+            border: 2px dashed #c77dff;
+            color: #ffffff;
+            background: rgba(157, 78, 221, 0.2);
+            padding: 12px;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-upload:hover {
+            background: rgba(157, 78, 221, 0.4);
+            border-color: #e0aaff;
+            box-shadow: 0 0 15px rgba(224, 170, 255, 0.4);
+        }
+
+        .file-upload-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* 文字輸入框樣式 */
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(224, 170, 255, 0.3);
+            background: rgba(16, 0, 43, 0.5);
+            color: #ffffff;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #e0aaff;
+            box-shadow: 0 0 10px rgba(224, 170, 255, 0.5);
+        }
+
+        /* 滑桿 (Range Input) 紫色系美化 */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.2);
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #e0aaff;
+            cursor: pointer;
+            box-shadow: 0 0 10px #9d4edf;
+            transition: transform 0.1s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: #ffffff;
+        }
+
+        /* 顏色選擇器 */
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            background: transparent;
+        }
+
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        input[type="color"]::-webkit-color-swatch {
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+        }
+
+        /* 迷因即時預覽卡片區塊 */
+        .preview-panel {
+            flex: 1.2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 18px;
+        }
+
+        /* 超酷截圖目標區域 */
+        .meme-stage {
+            position: relative;
+            width: 100%;
+            max-width: 520px;
+            aspect-ratio: 1 / 1;
+            background: #10002b;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(157, 78, 221, 0.3);
+            border: 2px solid rgba(224, 170, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        /* 顯示圖片容器 */
+        .meme-stage img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* 完整呈現圖片並維持比例 */
+            display: block;
+        }
+
+        /* 重疊在圖片上的迷因文字 */
+        .meme-text {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            text-align: center;
+            font-family: var(--font-meme);
+            font-weight: 900;
+            line-height: 1.2;
+            text-transform: uppercase;
+            word-wrap: break-word;
+            pointer-events: none;
+            
+            /* 關鍵：粗黑色描邊，讓任何淺色/深色底圖上的文字都極度清晰 */
+            color: #ffffff;
+            text-shadow: 
+                3px 3px 0 #000, -3px -3px 0 #000,
+                3px -3px 0 #000, -3px 3px 0 #000,
+                0px 3px 0 #000, 0px -3px 0 #000,
+                3px 0px 0 #000, -3px 0px 0 #000,
+                0px 5px 10px rgba(0, 0, 0, 0.8);
+            transition: top 0.05s ease, bottom 0.05s ease, font-size 0.05s ease;
+        }
+
+        .meme-text.top {
+            top: 5%;
+        }
+
+        .meme-text.bottom {
+            bottom: 5%;
+        }
+
+        /* 一鍵下載的亮眼按鈕 */
+        .btn-download {
+            width: 100%;
+            max-width: 520px;
+            padding: 16px;
+            border: none;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #ff79c6 0%, #bd93f9 50%, #ff922b 100%);
+            background-size: 200% 200%;
+            color: #ffffff;
+            font-size: 1.1rem;
+            font-weight: 700;
+            font-family: var(--font-main);
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(189, 147, 249, 0.4);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-download:hover {
+            transform: translateY(-3px) scale(1.01);
+            box-shadow: 0 12px 30px rgba(255, 121, 198, 0.6);
+            background-position: 100% 0%;
+        }
+
+        .btn-download:active {
+            transform: translateY(1px);
+        }
+
+        /* RWD 響應式排版 (手機版視窗小於 768px 時切換為單欄) */
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            .control-panel {
+                padding: 18px;
+            }
+
+            .meme-stage {
+                max-width: 100%;
+            }
         }
     </style>
 </head>
-<body class="p-4 sm:p-6 md:p-10 flex flex-col justify-between items-center min-h-screen">
+<body>
 
-    <!-- Floating Background Decorative Elements -->
-    <div class="bg-sparkle top-8 left-[6%] text-purpleMain text-3xl opacity-80 z-0">💜</div>
-    <div class="bg-sparkle top-16 right-[8%] text-purpleDark text-4xl opacity-80 z-0" style="animation-delay: 1s;">✨</div>
-    <div class="bg-sparkle bottom-20 left-[5%] text-purplePastel text-4xl opacity-80 z-0" style="animation-delay: 2s;">🌟</div>
-    <div class="bg-sparkle bottom-28 right-[7%] text-purplePink text-3xl opacity-80 z-0" style="animation-delay: 1.5s;">🔮</div>
-    <div class="bg-sparkle top-1/2 left-[2%] text-purpleSoft text-3xl opacity-70 z-0" style="animation-delay: 2.5s;">☁</div>
-    <div class="bg-sparkle top-1/3 right-[3%] text-purpleMain text-2xl opacity-70 z-0" style="animation-delay: 0.8s;">💜</div>
+    <!-- 夢幻星空微光背景效果 -->
+    <div class="sparkle-bg"></div>
 
-    <!-- MAIN CONTAINER -->
-    <div class="w-full max-w-6xl mx-auto flex-1 flex flex-col justify-center items-center relative z-10">
+    <header>
+        <h1>✨ 轉瞬即逝的夢幻紫迷因產生器 💜</h1>
+        <p>上傳你的專屬圖片，輕鬆調整字幕，快速創造屬於你的可愛迷因！</p>
+    </header>
 
-        <header class="w-full max-w-2xl bg-white/90 backdrop-blur-md rounded-[36px] p-6 sm:p-8 mb-10 border-4 border-purplePastel shadow-[0_15px_35px_rgba(168,85,247,0.25)] flex flex-col items-center text-center relative">
+    <!-- 主應用程式雙欄區塊 -->
+    <div class="app-container">
+        
+        <div class="control-panel">
+            <div class="panel-title">🎨 迷因創作控制台</div>
+
+            <!-- 1. 本地圖片上傳 -->
+            <div class="control-group">
+                <label>1. 選擇底圖 (支援 JPG, PNG, WEBP)</label>
+                <div class="file-upload-wrapper">
+                    <div class="btn-upload">
+                        <span>📷 點擊上傳本機圖片</span>
+                    </div>
+                    <!-- 使用 file input 讀取本地檔案，避免 CORS 跨域圖片下載失敗問題 -->
+                    <input type="file" id="image-upload" accept="image/*">
+                </div>
+            </div>
+
+            <!-- 2. 上方文字輸入 -->
+            <div class="control-group">
+                <label for="top-text-input">2. 上方文字 (Top Text)</label>
+                <input type="text" id="top-text-input" placeholder="寫些幽默的句子吧..." value="當你寫出沒有 BUG 的程式碼">
+            </div>
+
+            <!-- 3. 下方文字輸入 -->
+            <div class="control-group">
+                <label for="bottom-text-input">3. 下方文字 (Bottom Text)</label>
+                <input type="text" id="bottom-text-input" placeholder="或者是出乎意料的反轉..." value="（感覺簡直像是魔法）">
+            </div>
+
+            <!-- 4. 字體大小控制滑桿 -->
+            <div class="control-group">
+                <label for="font-size-slider">
+                    <span>4. 字體大小 (Font Size)</span>
+                    <span class="val-badge" id="font-size-val">36px</span>
+                </label>
+                <input type="range" id="font-size-slider" min="16" max="72" value="36">
+            </div>
+
+            <!-- 5. 上方文字垂直位置滑桿 -->
+            <div class="control-group">
+                <label for="top-pos-slider">
+                    <span>5. 上方文字垂直位置 (Top Pos)</span>
+                    <span class="val-badge" id="top-pos-val">5%</span>
+                </label>
+                <input type="range" id="top-pos-slider" min="0" max="45" value="5">
+            </div>
+
+            <!-- 6. 下方文字垂直位置滑桿 -->
+            <div class="control-group">
+                <label for="bottom-pos-slider">
+                    <span>6. 下方文字垂直位置 (Bottom Pos)</span>
+                    <span class="val-badge" id="bottom-pos-val">5%</span>
+                </label>
+                <input type="range" id="bottom-pos-slider" min="0" max="45" value="5">
+            </div>
+
+            <!-- 7. 文字顏色選擇 -->
+            <div class="control-group">
+                <label for="text-color-picker">7. 文字顏色 (Text Color)</label>
+                <div class="color-picker-wrapper">
+                    <input type="color" id="text-color-picker" value="#ffffff">
+                    <span style="font-size: 0.85rem; color: #e0aaff;">選擇喜歡的文字色彩</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="preview-panel">
             
-            <!-- Avatar Container -->
-            <div class="relative group mb-4">
-                <div class="w-28 h-28 sm:w-32 sm:h-32 rounded-full p-1.5 bg-gradient-to-tr from-purpleDark via-purplePink to-goldAccent shadow-inner flex items-center justify-center animate-[purpleGlow_3s_infinite]">
-                    <!-- 👇👇👇【在這裡修改圖片連結】👇👇👇 -->
-                    <img src="https://api.dicebear.com/7.x/bottts/svg?seed=purpleCat" alt="我的大頭貼" class="w-full h-full rounded-full object-cover border-2 border-white bg-purpleSoft/40">
-                    <!-- 👆👆👆【可更換為 src="avatar.jpg"】👆👆👆 -->
-                </div>
-                <!-- Badge -->
-                <span class="absolute -bottom-1 right-1 bg-goldAccent text-purpleNight text-xs font-bold px-3 py-1 rounded-full border-2 border-white shadow-md flex items-center gap-1">
-                    <i class="fa-solid fa-crown text-amber-700"></i> LV.01
-                </span>
+            <!-- 被截圖的迷因舞台 (Preview Canvas Box) -->
+            <div class="meme-stage" id="meme-stage">
+                <!-- 預設占位圖片 (使用可愛 SVG 圖示) -->
+                <img id="meme-image" src="https://placehold.co/600x600/3c096c/e0aaff?text=Upload+Your+Image+%E2%9C%A8" alt="Meme Preview">
+                
+                <!-- 上方與下方動態文字 -->
+                <div class="meme-text top" id="meme-top-text">當你寫出沒有 BUG 的程式碼</div>
+                <div class="meme-text bottom" id="meme-bottom-text">（感覺簡直像是魔法）</div>
             </div>
 
-            <!-- Profile Title & Name -->
-            <h1 class="text-2xl sm:text-3xl font-black text-purpleNight tracking-wide flex items-center justify-center gap-2">
-                茉依佳 <span class="inline-block animate-bounce text-xl">🔮</span>
-            </h1>
-            <p class="text-sm sm:text-base font-semibold text-purpleDeep/80 mt-1 mb-4">
-                ✨休觀1年 ✨
-            </p>
+            <!-- 一鍵下載按鈕 -->
+            <button class="btn-download" id="download-btn">
+                <span>✨ 匯出並下載迷因 (my-meme.png)</span>
+            </button>
+        </div>
 
-            <!-- Animated EXP Progress Bar -->
-            <div class="w-full max-w-md bg-purpleBg rounded-full p-1.5 border-2 border-purplePastel shadow-inner">
-                <div class="flex justify-between text-xs font-bold text-purpleDeep px-2 mb-1">
-                    <span>EXP 活力</span>
-                    <span>3 / 16 (18.75%)</span>
-                </div>
-                <div class="w-full bg-purpleSoft/60 rounded-full h-4 overflow-hidden relative">
-                    <div class="exp-bar-fill h-full rounded-full transition-all duration-1000" style="width: 18.75%;"></div>
-                </div>
-            </div>
-        </header>
-
-        <main class="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-
-            <!-- BUTTON 1: Week 1 (UNLOCKED) -->
-            <a href="w1/index.html" class="card-3d-unlocked shiny-sweep rounded-3xl p-5 flex flex-col justify-between group">
-                <div class="flex justify-between items-start mb-3">
-                    <span class="bg-purpleSoft text-purpleNight text-xs font-bold px-3 py-1 rounded-full border border-purpleMain">
-                        STAGE 01
-                    </span>
-                    <span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                        <i class="fa-solid fa-check"></i> CLEAR
-                    </span>
-                </div>
-                <div class="my-2">
-                    <div class="text-3xl mb-1 transition-transform group-hover:scale-125 duration-300">🎴</div>
-                    <h2 class="text-lg font-bold text-purpleNight group-hover:text-purpleDark transition-colors">
-                        Week 1 - 數位名片
-                    </h2>
-                    <p class="text-xs text-purpleDeep/70 mt-1">建立專屬個人風格名片</p>
-                </div>
-                <div class="mt-3 text-right">
-                    <span class="inline-flex items-center text-xs font-bold text-purpleDark group-hover:translate-x-1 transition-transform">
-                        探索關卡 <i class="fa-solid fa-arrow-right ml-1"></i>
-                    </span>
-                </div>
-            </a>
-
-            <!-- BUTTON 2: Week 2 (UNLOCKED) -->
-            <a href="w2/index.html" class="card-3d-unlocked shiny-sweep rounded-3xl p-5 flex flex-col justify-between group">
-                <div class="flex justify-between items-start mb-3">
-                    <span class="bg-purpleSoft text-purpleNight text-xs font-bold px-3 py-1 rounded-full border border-purpleMain">
-                        STAGE 02
-                    </span>
-                    <span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                        <i class="fa-solid fa-check"></i> CLEAR
-                    </span>
-                </div>
-                <div class="my-2">
-                    <div class="text-3xl mb-1 transition-transform group-hover:scale-125 duration-300">🍱</div>
-                    <h2 class="text-lg font-bold text-purpleNight group-hover:text-purpleDark transition-colors">
-                        Week 2 - 今天吃甚麼?
-                    </h2>
-                    <p class="text-xs text-purpleDeep/70 mt-1">美食選擇困難救星</p>
-                </div>
-                <div class="mt-3 text-right">
-                    <span class="inline-flex items-center text-xs font-bold text-purpleDark group-hover:translate-x-1 transition-transform">
-                        探索關卡 <i class="fa-solid fa-arrow-right ml-1"></i>
-                    </span>
-                </div>
-            </a>
-
-            <!-- BUTTON 3: Week 3 (UNLOCKED - 新解鎖關卡) -->
-            <a href="w3/index.html" class="card-3d-unlocked shiny-sweep rounded-3xl p-5 flex flex-col justify-between group">
-                <div class="flex justify-between items-start mb-3">
-                    <span class="bg-purpleSoft text-purpleNight text-xs font-bold px-3 py-1 rounded-full border border-purpleMain">
-                        STAGE 03
-                    </span>
-                    <span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                        <i class="fa-solid fa-check"></i> CLEAR
-                    </span>
-                </div>
-                <div class="my-2">
-                    <div class="text-3xl mb-1 transition-transform group-hover:scale-125 duration-300">🖼️</div>
-                    <h2 class="text-lg font-bold text-purpleNight group-hover:text-purpleDark transition-colors">
-                        Week 3 - 迷因產生器
-                    </h2>
-                    <p class="text-xs text-purpleDeep/70 mt-1">創意梗圖梗文產生器</p>
-                </div>
-                <div class="mt-3 text-right">
-                    <span class="inline-flex items-center text-xs font-bold text-purpleDark group-hover:translate-x-1 transition-transform">
-                        探索關卡 <i class="fa-solid fa-arrow-right ml-1"></i>
-                    </span>
-                </div>
-            </a>
-
-            <!-- Week 4 -->
-            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
-                <div class="flex justify-between items-start">
-                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 04</span>
-                    <span class="text-lg">🔒</span>
-                </div>
-                <div class="my-4 text-center">
-                    <p class="text-sm font-bold text-purpleNight/50">Week 4 - 尚未解鎖</p>
-                    <p class="text-xs text-purpleDeep/40 mt-1">完成前置任務開啟</p>
-                </div>
-                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
-                    🔒 魔法能量調配中...
-                </div>
-            </div>
-
-            <!-- Week 5 -->
-            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
-                <div class="flex justify-between items-start">
-                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 05</span>
-                    <span class="text-lg">🔒</span>
-                </div>
-                <div class="my-4 text-center">
-                    <p class="text-sm font-bold text-purpleNight/50">Week 5 - 尚未解鎖</p>
-                    <p class="text-xs text-purpleDeep/40 mt-1">完成前置任務開啟</p>
-                </div>
-                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
-                    🔒 請解開下一關卷軸！
-                </div>
-            </div>
-
-            <!-- Week 6 -->
-            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
-                <div class="flex justify-between items-start">
-                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 06</span>
-                    <span class="text-lg">🔒</span>
-                </div>
-                <div class="my-4 text-center">
-                    <p class="text-sm font-bold text-purpleNight/50">Week 6 - 尚未解鎖</p>
-                    <p class="text-xs text-purpleDeep/40 mt-1">完成前置任務開啟</p>
-                </div>
-                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
-                    🔒 尚未到達開啟時間
-                </div>
-            </div>
-
-            <!-- Week 7 -->
-            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
-                <div class="flex justify-between items-start">
-                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 07</span>
-                    <span class="text-lg">🔒</span>
-                </div>
-                <div class="my-4 text-center">
-                    <p class="text-sm font-bold text-purpleNight/50">Week 7 - 尚未解鎖</p>
-                    <p class="text-xs text-purpleDeep/40 mt-1">完成前置任務開啟</p>
-                </div>
-                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
-                    🔒 魔法鎖頭封印中
-                </div>
-            </div>
-
-            <!-- Week 8 -->
-            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
-                <div class="flex justify-between items-start">
-                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 08</span>
-                    <span class="text-lg">🔒</span>
-                </div>
-                <div class="my-4 text-center">
-                    <p class="text-sm font-bold text-purpleNight/50">Week 8 - 中場 BOSS 關</p>
-                    <p class="text-xs text-purpleDeep/40 mt-1">等級不足無法開啟</p>
-                </div>
-                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
-                    ⚔️ BOSS 尚未降臨！
-                </div>
-            </div>
-
-            <!-- Week 9 -->
-            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
-                <div class="flex justify-between items-start">
-                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 09</span>
-                    <span class="text-lg">🔒</span>
-                </div>
-                <div class="my-4 text-center">
-                    <p class="text-sm font-bold text-purpleNight/50">Week 9 - 尚未解鎖</p>
-                    <p class="text-xs text-purpleDeep/40 mt-1">完成前置任務開啟</p>
-                </div>
-                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
-                    🔒 冒險繼續進行中
-                </div>
-            </div>
-
-            <!-- Week 10 -->
-            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
-                <div class="flex justify-between items-start">
-                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 10</span>
-                    <span class="text-lg">🔒</span>
-                </div>
-                <div class="my-4 text-center">
-                    <p class="text-sm font-bold text-purpleNight/50">Week 10 - 尚未解鎖</p>
-                    <p class="text-xs text-purpleDeep/40 mt-1">完成前置任務開啟</p>
-                </div>
-                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
-                    🔒 魔法能量累積中
-                </div>
-            </div>
-
-            <!-- Week 11 -->
-            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
-                <div class="flex justify-between items-start">
-                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 11</span>
-                    <span class="text-lg">🔒</span>
-                </div>
-                <div class="my-4 text-center">
-                    <p class="text-sm font-bold text-purpleNight/50">Week 11 - 尚未解鎖</p>
-                    <p class="text-xs text-purpleDeep/40 mt-1">完成前置任務開啟</p>
-                </div>
-                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
-                    🔒 探索未知新地圖
-                </div>
-            </div>
-
-            <!-- Week 12 -->
-            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
-                <div class="flex justify-between items-start">
-                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 12</span>
-                    <span class="text-lg">🔒</span>
-                </div>
-                <div class="my-4 text-center">
-                    <p class="text-sm font-bold text-purpleNight/50">Week 12 - 尚未解鎖</p>
-                    <p class="text-xs text-purpleDeep/40 mt-1">完成前置任務開啟</p>
-                </div>
-                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
-                    🔒 魔法結晶調製中
-                </div>
-            </div>
-
-            <!-- Week 13 -->
-            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
-                <div class="flex justify-between items-start">
-                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 13</span>
-                    <span class="text-lg">🔒</span>
-                </div>
-                <div class="my-4 text-center">
-                    <p class="text-sm font-bold text-purpleNight/50">Week 13 - 尚未解鎖</p>
-                    <p class="text-xs text-purpleDeep/40 mt-1">完成前置任務開啟</p>
-                </div>
-                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
-                    🔒 請持續積累經驗！
-                </div>
-            </div>
-
-            <!-- Week 14 -->
-            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
-                <div class="flex justify-between items-start">
-                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 14</span>
-                    <span class="text-lg">🔒</span>
-                </div>
-                <div class="my-4 text-center">
-                    <p class="text-sm font-bold text-purpleNight/50">Week 14 - 尚未解鎖</p>
-                    <p class="text-xs text-purpleDeep/40 mt-1">完成前置任務開啟</p>
-                </div>
-                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
-                    🔒 高級魔法準備中
-                </div>
-            </div>
-
-            <!-- Week 15 -->
-            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
-                <div class="flex justify-between items-start">
-                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 15</span>
-                    <span class="text-lg">🔒</span>
-                </div>
-                <div class="my-4 text-center">
-                    <p class="text-sm font-bold text-purpleNight/50">Week 15 - 尚未解鎖</p>
-                    <p class="text-xs text-purpleDeep/40 mt-1">完成前置任務開啟</p>
-                </div>
-                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
-                    🔒 倒數第二關卡！
-                </div>
-            </div>
-
-            <!-- Week 16 -->
-            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
-                <div class="flex justify-between items-start">
-                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 16</span>
-                    <span class="text-lg">👑</span>
-                </div>
-                <div class="my-4 text-center">
-                    <p class="text-sm font-bold text-purpleNight/50">Week 16 - 最終大挑戰</p>
-                    <p class="text-xs text-purpleDeep/40 mt-1">通關終極專題</p>
-                </div>
-                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
-                    👑 最終大魔王關卡！
-                </div>
-            </div>
-
-        </main>
     </div>
 
-    <footer class="mt-12 text-center text-xs font-bold text-purpleDeep/70 relative z-10">
-        <p class="flex items-center justify-center gap-1">
-            Made with <span class="text-purplePink">💜</span> for Web Development Class
-        </p>
-    </footer>
+    <script>
+        /* -------------------------------------------------------------
+           [JavaScript 邏輯] 掌握互動事件與 DOM 元素操作
+           ------------------------------------------------------------- */
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // 取得 HTML 中的各項元件 (DOM 節點)
+            const imageUpload = document.getElementById('image-upload');
+            const memeImage = document.getElementById('meme-image');
+            
+            const topTextInput = document.getElementById('top-text-input');
+            const bottomTextInput = document.getElementById('bottom-text-input');
+            const memeTopText = document.getElementById('meme-top-text');
+            const memeBottomText = document.getElementById('meme-bottom-text');
+            
+            const fontSizeSlider = document.getElementById('font-size-slider');
+            const fontSizeVal = document.getElementById('font-size-val');
+            
+            const topPosSlider = document.getElementById('top-pos-slider');
+            const topPosVal = document.getElementById('top-pos-val');
+            
+            const bottomPosSlider = document.getElementById('bottom-pos-slider');
+            const bottomPosVal = document.getElementById('bottom-pos-val');
+            
+            const textColorPicker = document.getElementById('text-color-picker');
+            const downloadBtn = document.getElementById('download-btn');
+            const memeStage = document.getElementById('meme-stage');
 
+            /* =========================================================
+               1. 本地圖片讀取功能 (FileReader API 避開 CORS 錯誤)
+               ========================================================= */
+            imageUpload.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                
+                if (file) {
+                    // 建立 FileReader 物件讀取檔案
+                    const reader = new FileReader();
+                    
+                    // 當檔案讀取完成後觸發
+                    reader.onload = function(event) {
+                        // 將讀取到的 base64 圖片數據設定為 <img> 的 src
+                        memeImage.src = event.target.result;
+                    };
+                    
+                    // 以 DataURL 格式讀取本地檔案
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            /* =========================================================
+               2. 文字動態即時同步 (Input Keyup / Input Events)
+               ========================================================= */
+            topTextInput.addEventListener('input', () => {
+                memeTopText.innerText = topTextInput.value;
+            });
+
+            bottomTextInput.addEventListener('input', () => {
+                memeBottomText.innerText = bottomTextInput.value;
+            });
+
+            /* =========================================================
+               3. 參數滑桿控制 (字體大小與垂直位置微調)
+               ========================================================= */
+            // 調整字體大小
+            fontSizeSlider.addEventListener('input', () => {
+                const size = fontSizeSlider.value + 'px';
+                memeTopText.style.fontSize = size;
+                memeBottomText.style.fontSize = size;
+                fontSizeVal.innerText = size;
+            });
+
+            // 調整上方文字 Top 位置
+            topPosSlider.addEventListener('input', () => {
+                const pos = topPosSlider.value + '%';
+                memeTopText.style.top = pos;
+                topPosVal.innerText = pos;
+            });
+
+            // 調整下方文字 Bottom 位置
+            bottomPosSlider.addEventListener('input', () => {
+                const pos = bottomPosSlider.value + '%';
+                memeBottomText.style.bottom = pos;
+                bottomPosVal.innerText = pos;
+            });
+
+            // 調整文字顏色
+            textColorPicker.addEventListener('input', () => {
+                const color = textColorPicker.value;
+                memeTopText.style.color = color;
+                memeBottomText.style.color = color;
+            });
+
+            /* =========================================================
+               4. 一鍵下載迷因圖檔 (使用 html2canvas 截圖並存檔)
+               ========================================================= */
+            downloadBtn.addEventListener('click', () => {
+                // 提示按鈕正在處理中
+                const originalText = downloadBtn.innerHTML;
+                downloadBtn.innerHTML = '<span>⏳ 產生圖檔中，請稍候...</span>';
+                downloadBtn.style.opacity = '0.7';
+
+                // 使用 html2canvas 將 #meme-stage 區塊轉為 Canvas
+                html2canvas(memeStage, {
+                    useCORS: true,       // 允許跨域圖片 (若有 external 資源)
+                    scale: 2,            // 提升截圖清晰度 (2倍解析度)
+                    backgroundColor: null// 保持透明底或照原有背景渲染
+                }).then(canvas => {
+                    // 將 Canvas 轉換為 PNG 圖片網址
+                    const imageUrl = canvas.toDataURL('image/png');
+                    
+                    // 建立隱藏的 <a> 標籤來觸發瀏覽器下載
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = imageUrl;
+                    downloadLink.download = 'my-meme.png'; // 下載的檔案名稱
+                    
+                    // 觸發點擊並移除標籤
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+
+                    // 恢復下載按鈕狀態
+                    downloadBtn.innerHTML = originalText;
+                    downloadBtn.style.opacity = '1';
+                }).catch(err => {
+                    console.error('產生圖片失敗：', err);
+                    alert('產生迷因失敗，請稍後再試！');
+                    downloadBtn.innerHTML = originalText;
+                    downloadBtn.style.opacity = '1';
+                });
+            });
+
+            // 初始化設定預設字體大小樣式
+            memeTopText.style.fontSize = fontSizeSlider.value + 'px';
+            memeBottomText.style.fontSize = fontSizeSlider.value + 'px';
+        });
+    </script>
 </body>
 </html>
