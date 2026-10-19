@@ -1,495 +1,496 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>朋友對我的動態留言板</title>
-  
-  <!-- 載入 Google 可愛風格字型與 Font Awesome 圖示庫 -->
-  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>休觀Lavender & Purple Pastel Portfolio</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for Cute Typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-  <style>
-    /* =========================================================
-       1. 全域變數設定 (方便未來自行調整顏色與主題)
-       ========================================================= */
-    :root {
-      /* 主題背景與卡片顏色 */
-      --bg-color: #fef6f8;            /* 網頁整體背景色 (溫柔粉白) */
-      --card-bg: #ffffff;             /* 卡片底色 (純白) */
-      --primary-color: #ff8fa3;        /* 主主題色 (粉紅) */
-      --accent-color: #ffb703;         /* 強調主題色 (可愛黃) */
-      --text-main: #5c4d4d;            /* 主要文字顏色 (深柔棕色) */
-      --text-sub: #a39393;             /* 次要/時間文字顏色 */
-      
-      /* 焦點輪播 (Highlight) 設定 - 方便後續調整發光效果 */
-      --highlight-border: #ff4d6d;     /* 亮起時的邊框顏色 */
-      --highlight-shadow: rgba(255, 77, 109, 0.4); /* 亮起時的光芒顏色 */
-    }
+    <!-- Tailwind Theme Configuration -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        purpleBg: '#FAF5FF',
+                        purpleLight: '#F3E8FF',
+                        purpleSoft: '#E9D5FF',
+                        purplePastel: '#D8B4FE',
+                        purpleMain: '#C084FC',
+                        purpleDark: '#A855F7',
+                        purpleDeep: '#7E22CE',
+                        purpleNight: '#3B0764',
+                        purplePink: '#F472B6',
+                        goldAccent: '#FBBF24',
+                    },
+                    fontFamily: {
+                        cute: ['"Zen Maru Gothic"', '"Fredoka"', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Zen Maru Gothic', sans-serif; /* 可愛圓體 */
-    }
+    <style>
+        body {
+            font-family: 'Zen Maru Gothic', 'Fredoka', sans-serif;
+            background: radial-gradient(circle at 50% 15%, #FAF5FF 0%, #E9D5FF 45%, #C084FC 100%);
+            color: #3B0764;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
 
-    body {
-      background-color: var(--bg-color);
-      color: var(--text-main);
-      padding: 30px 20px;
-      min-height: 100vh;
-      background-image: radial-gradient(#ffcad4 10%, transparent 11%);
-      background-size: 20px 20px; /* 可愛圓點點背景 */
-    }
+        /* Floating background particles */
+        .bg-sparkle {
+            position: absolute;
+            pointer-events: none;
+            animation: floatParticle 5s ease-in-out infinite;
+        }
 
-    /* 頁面標題區塊 */
-    header {
-      text-align: center;
-      margin-bottom: 30px;
-    }
+        @keyframes floatParticle {
+            0%, 100% { transform: translateY(0px) rotate(0deg) scale(1); }
+            50% { transform: translateY(-18px) rotate(12deg) scale(1.15); }
+        }
 
-    header h1 {
-      font-size: 2.2rem;
-      color: var(--primary-color);
-      text-shadow: 2px 2px 0px #fff, 4px 4px 0px #ffccd5;
-      display: inline-block;
-      padding: 10px 20px;
-      background: #fff;
-      border-radius: 25px;
-      border: 3px dashed var(--primary-color);
-    }
+        /* Avatar glow effect */
+        @keyframes purpleGlow {
+            0%, 100% { filter: drop-shadow(0 0 12px rgba(192, 132, 252, 0.8)); }
+            50% { filter: drop-shadow(0 0 26px rgba(168, 85, 247, 1)); }
+        }
 
-    header p {
-      margin-top: 10px;
-      color: var(--text-sub);
-      font-size: 1rem;
-    }
+        /* 3D Claymorphism Unlocked Card */
+        .card-3d-unlocked {
+            background: linear-gradient(135deg, #FFFFFF 0%, #FAF5FF 100%);
+            border: 3.5px solid #C084FC;
+            box-shadow: 0 8px 0 0 #A855F7, 0 14px 22px -4px rgba(168, 85, 247, 0.35);
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            overflow: hidden;
+        }
 
-    /* =========================================================
-       2. 酷炫載入中動畫 (Loading State)
-       ========================================================= */
-    #loading-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 60px 0;
-    }
+        .card-3d-unlocked:hover {
+            transform: translateY(-8px) scale(1.03);
+            box-shadow: 0 16px 0 0 #A855F7, 0 22px 30px -5px rgba(168, 85, 247, 0.45);
+            border-color: #9333EA;
+        }
 
-    /* 可愛跳動的大愛心 loader */
-    .loader-heart {
-      font-size: 3rem;
-      color: var(--primary-color);
-      animation: heartbeat 0.8s infinite alternate ease-in-out;
-    }
+        .card-3d-unlocked:active {
+            transform: translateY(2px) scale(0.98);
+            box-shadow: 0 4px 0 0 #A855F7, 0 6px 12px -2px rgba(168, 85, 247, 0.3);
+        }
 
-    /* 載入文字閃爍效果 */
-    .loading-text {
-      margin-top: 15px;
-      font-size: 1.2rem;
-      font-weight: bold;
-      color: var(--primary-color);
-      letter-spacing: 2px;
-      animation: blink 1.2s infinite;
-    }
+        /* Locked Card Styling */
+        .card-locked {
+            background: linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 100%);
+            border: 3px solid #E9D5FF;
+            box-shadow: 0 6px 0 0 #C084FC, 0 8px 16px -4px rgba(192, 132, 252, 0.25);
+            transition: all 0.2s ease;
+            position: relative;
+            cursor: not-allowed;
+        }
 
-    @keyframes heartbeat {
-      0% { transform: scale(1); }
-      100% { transform: scale(1.3) rotate(5deg); }
-    }
+        .card-locked:hover {
+            animation: lockShake 0.4s ease-in-out;
+            background: #F3E8FF;
+            border-color: #C084FC;
+        }
 
-    @keyframes blink {
-      0%, 100% { opacity: 0.3; }
-      50% { opacity: 1; }
-    }
+        @keyframes lockShake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-5px) rotate(-2deg); }
+            40% { transform: translateX(5px) rotate(2deg); }
+            60% { transform: translateX(-3px) rotate(-1deg); }
+            80% { transform: translateX(3px) rotate(1deg); }
+        }
 
-    /* =========================================================
-       3. 瀑布流排版 (Masonry Layout)
-       ========================================================= */
-    .masonry-board {
-      /* 使用 CSS column 實現瀑布流 */
-      column-count: 4;          /* 預設大螢幕顯示 4 欄 */
-      column-gap: 20px;
-      max-width: 1200px;
-      margin: 0 auto;
-      opacity: 0;
-      transition: opacity 0.5s ease-in;
-    }
+        /* Shiny Sweep Effect for Unlocked Cards */
+        .shiny-sweep::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -120%;
+            width: 70%;
+            height: 100%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255, 255, 255, 0.8),
+                transparent
+            );
+            transform: skewX(-25deg);
+            transition: 0.65s ease-in-out;
+        }
 
-    /* 響應式欄位調整 */
-    @media (max-width: 1024px) { .masonry-board { column-count: 3; } }
-    @media (max-width: 768px)  { .masonry-board { column-count: 2; } }
-    @media (max-width: 480px)  { .masonry-board { column-count: 1; } }
+        .shiny-sweep:hover::before {
+            left: 170%;
+        }
 
-    /* =========================================================
-       4. 留言卡片樣式與動態特效
-       ========================================================= */
-    .card {
-      background-color: var(--card-bg);
-      border-radius: 18px;
-      padding: 20px;
-      margin-bottom: 20px;
-      break-inside: avoid; /* 防止卡片在瀑布流中被截斷 */
-      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.05);
-      border: 2px solid #fff0f3;
-      position: relative;
-      cursor: pointer;
-      
-      /* 設定平滑過渡，讓輪播特效更自然 */
-      transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
-    }
+        /* Dynamic EXP Bar Animation */
+        .exp-bar-fill {
+            background: linear-gradient(90deg, #C084FC 0%, #F472B6 50%, #FBBF24 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 3s ease infinite;
+        }
 
-    /* 卡片頭部：名字與頭像 */
-    .card-header {
-      display: flex;
-      align-items: center;
-      margin-bottom: 12px;
-    }
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
 
-    .card-avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background-color: #ffe5ec;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      color: var(--primary-color);
-      margin-right: 12px;
-      border: 2px solid var(--primary-color);
-    }
+        /* Custom Locked Tooltip */
+        .locked-tooltip {
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            transform: translateY(8px);
+        }
 
-    .card-title {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--text-main);
-    }
-
-    /* 卡片內容與時間 */
-    .card-content {
-      font-size: 0.95rem;
-      line-height: 1.6;
-      word-break: break-all;
-      color: #4a4a4a;
-    }
-
-    .card-footer {
-      margin-top: 15px;
-      font-size: 0.75rem;
-      color: var(--text-sub);
-      text-align: right;
-    }
-
-    /* 可愛紙膠帶裝飾元素 */
-    .card::before {
-      content: '';
-      position: absolute;
-      top: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 60px;
-      height: 15px;
-      background: rgba(255, 183, 3, 0.4);
-      border-radius: 2px;
-    }
-
-    /* =========================================================
-       5. 輪播 Highlight 特效 (核心視覺重點)
-       ========================================================= */
-    
-    /* 沒被選中的卡片：微微變暗、變模糊並縮小 */
-    .masonry-board.carousel-active .card:not(.highlight) {
-      opacity: 0.4;
-      filter: blur(1.5px);
-      transform: scale(0.95);
-    }
-
-    /* 被選中的亮起卡片 (Highlight)：放大、發光、明顯邊框 */
-    .card.highlight {
-      opacity: 1 !important;
-      filter: blur(0px) !important;
-      transform: scale(1.08) translateY(-5px) !important;
-      border: 3px solid var(--highlight-border);
-      box-shadow: 0 12px 30px var(--highlight-shadow);
-      z-index: 10; /* 讓被突顯的卡片圖層置頂 */
-    }
-
-    /* 亮起時卡片右頂端加入一個可愛閃爍小星星 */
-    .card.highlight::after {
-      content: '✨';
-      position: absolute;
-      top: 5px;
-      right: 10px;
-      font-size: 1.2rem;
-      animation: spin 1s infinite linear;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-  </style>
+        .card-locked:hover .locked-tooltip {
+            visibility: visible;
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
 </head>
-<body>
+<body class="p-4 sm:p-6 md:p-10 flex flex-col justify-between items-center min-h-screen">
 
-  <!-- 標題區域 -->
-  <header>
-    <h1><i class="fa-solid fa-heart"></i> 朋友的秘密留言板</h1>
-    <p>溫馨輪播中，看看大家對我說了什麼吧～</p>
-  </header>
+    <!-- Floating Background Decorative Elements -->
+    <div class="bg-sparkle top-8 left-[6%] text-purpleMain text-3xl opacity-80 z-0">💜</div>
+    <div class="bg-sparkle top-16 right-[8%] text-purpleDark text-4xl opacity-80 z-0" style="animation-delay: 1s;">✨</div>
+    <div class="bg-sparkle bottom-20 left-[5%] text-purplePastel text-4xl opacity-80 z-0" style="animation-delay: 2s;">🌟</div>
+    <div class="bg-sparkle bottom-28 right-[7%] text-purplePink text-3xl opacity-80 z-0" style="animation-delay: 1.5s;">🔮</div>
+    <div class="bg-sparkle top-1/2 left-[2%] text-purpleSoft text-3xl opacity-70 z-0" style="animation-delay: 2.5s;">☁</div>
+    <div class="bg-sparkle top-1/3 right-[3%] text-purpleMain text-2xl opacity-70 z-0" style="animation-delay: 0.8s;">💜</div>
 
-  <!-- 載入中動畫區塊 -->
-  <div id="loading-container">
-    <div class="loader-heart"><i class="fa-solid fa-envelope-open-text"></i></div>
-    <div class="loading-text">讀取留言中...</div>
-  </div>
+    <!-- MAIN CONTAINER -->
+    <div class="w-full max-w-6xl mx-auto flex-1 flex flex-col justify-center items-center relative z-10">
 
-  <!-- 留言板瀑布流容器 -->
-  <div class="masonry-board" id="board"></div>
+        <header class="w-full max-w-2xl bg-white/90 backdrop-blur-md rounded-[36px] p-6 sm:p-8 mb-10 border-4 border-purplePastel shadow-[0_15px_35px_rgba(168,85,247,0.25)] flex flex-col items-center text-center relative">
+            
+            <!-- Avatar Container -->
+            <div class="relative group mb-4">
+                <div class="w-28 h-28 sm:w-32 sm:h-32 rounded-full p-1.5 bg-gradient-to-tr from-purpleDark via-purplePink to-goldAccent shadow-inner flex items-center justify-center animate-[purpleGlow_3s_infinite]">
+                    <img src="https://api.dicebear.com/7.x/bottts/svg?seed=purpleCat" alt="我的大頭貼" class="w-full h-full rounded-full object-cover border-2 border-white bg-purpleSoft/40">
+                </div>
+                <!-- Badge -->
+                <span class="absolute -bottom-1 right-1 bg-goldAccent text-purpleNight text-xs font-bold px-3 py-1 rounded-full border-2 border-white shadow-md flex items-center gap-1">
+                    <i class="fa-solid fa-crown text-amber-700"></i> LV.01
+                </span>
+            </div>
 
-  <script>
-    // =========================================================
-    // 參數設定區 (請在此處輕鬆修改輪播參數與資料源)
-    // =========================================================
-    
-    /**
-     * Google 試算表發布的 CSV 網址
-     * 注意：發布為網頁時的 pubhtml 網址若要下載 CSV，需將結尾改成 output=csv 格式
-     */
-    const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSncjkm8p_VKEIgIaKdNBHbFca469XnCsptnrU6Eiu9PaE2IU8bAQC6J1YeCJvoIh3rncowXkMGZf3Z/pub?output=csv';
+            <!-- Profile Title & Name -->
+            <h1 class="text-2xl sm:text-3xl font-black text-purpleNight tracking-wide flex items-center justify-center gap-2">
+                茉依佳 <span class="inline-block animate-bounce text-xl">🔮</span>
+            </h1>
+            <p class="text-sm sm:text-base font-semibold text-purpleDeep/80 mt-1 mb-4">
+                ✨休觀1年 ✨
+            </p>
 
-    /**
-     * 【重點】輪播切換間隔時間 (單位：毫秒)
-     * 3000 代表 3 秒鐘切換一張卡片
-     */
-    const CAROUSEL_INTERVAL = 3000; 
+            <!-- Animated EXP Progress Bar -->
+            <div class="w-full max-w-md bg-purpleBg rounded-full p-1.5 border-2 border-purplePastel shadow-inner">
+                <div class="flex justify-between text-xs font-bold text-purpleDeep px-2 mb-1">
+                    <span>EXP 活力</span>
+                    <span>4 / 16 (25.00%)</span>
+                </div>
+                <div class="w-full bg-purpleSoft/60 rounded-full h-4 overflow-hidden relative">
+                    <div class="exp-bar-fill h-full rounded-full transition-all duration-1000" style="width: 25.00%;"></div>
+                </div>
+            </div>
+        </header>
 
-    // 全域變數
-    let messages = [];          // 儲存解析後的留言資料
-    let currentIndex = -1;      // 當前高亮顯示的卡片索引值
-    let carouselTimer = null;   // 計時器物件
+        <main class="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
 
-    // =========================================================
-    // 程式進入點 (DOM 載入完畢後執行)
-    // =========================================================
-    document.addEventListener('DOMContentLoaded', () => {
-      fetchMessageData();
-    });
+            <!-- BUTTON 1: Week 1 (UNLOCKED) -->
+            <a href="w1/index.html" class="card-3d-unlocked shiny-sweep rounded-3xl p-5 flex flex-col justify-between group">
+                <div class="flex justify-between items-start mb-3">
+                    <span class="bg-purpleSoft text-purpleNight text-xs font-bold px-3 py-1 rounded-full border border-purpleMain">
+                        STAGE 01
+                    </span>
+                    <span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <i class="fa-solid fa-check"></i> CLEAR
+                    </span>
+                </div>
+                <div class="my-2">
+                    <div class="text-3xl mb-1 transition-transform group-hover:scale-125 duration-300">🎴</div>
+                    <h2 class="text-lg font-bold text-purpleNight group-hover:text-purpleDark transition-colors">
+                        Week 1 - 數位名片
+                    </h2>
+                    <p class="text-xs text-purpleDeep/70 mt-1">建立專屬個人風格名片</p>
+                </div>
+                <div class="mt-3 text-right">
+                    <span class="inline-flex items-center text-xs font-bold text-purpleDark group-hover:translate-x-1 transition-transform">
+                        探索關卡 <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </span>
+                </div>
+            </a>
 
-    /**
-     * 1. 使用 fetch 抓取 Google 試算表 CSV 資料
-     */
-    async function fetchMessageData() {
-      try {
-        const response = await fetch(GOOGLE_SHEET_CSV_URL);
-        
-        if (!response.ok) {
-          throw new Error('網路回應不成功');
-        }
+            <!-- BUTTON 2: Week 2 (UNLOCKED) -->
+            <a href="w2/index.html" class="card-3d-unlocked shiny-sweep rounded-3xl p-5 flex flex-col justify-between group">
+                <div class="flex justify-between items-start mb-3">
+                    <span class="bg-purpleSoft text-purpleNight text-xs font-bold px-3 py-1 rounded-full border border-purpleMain">
+                        STAGE 02
+                    </span>
+                    <span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <i class="fa-solid fa-check"></i> CLEAR
+                    </span>
+                </div>
+                <div class="my-2">
+                    <div class="text-3xl mb-1 transition-transform group-hover:scale-125 duration-300">🍱</div>
+                    <h2 class="text-lg font-bold text-purpleNight group-hover:text-purpleDark transition-colors">
+                        Week 2 - 今天吃甚麼?
+                    </h2>
+                    <p class="text-xs text-purpleDeep/70 mt-1">美食選擇困難救星</p>
+                </div>
+                <div class="mt-3 text-right">
+                    <span class="inline-flex items-center text-xs font-bold text-purpleDark group-hover:translate-x-1 transition-transform">
+                        探索關卡 <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </span>
+                </div>
+            </a>
 
-        const csvText = await response.text();
-        messages = parseCSV(csvText); // 解析 CSV 內容
-        
-        // 隱藏載入動畫，顯示留言牆
-        document.getElementById('loading-container').style.display = 'none';
-        const board = document.getElementById('board');
-        board.style.opacity = '1';
+            <!-- BUTTON 3: Week 3 (UNLOCKED) -->
+            <a href="w3/index.html" class="card-3d-unlocked shiny-sweep rounded-3xl p-5 flex flex-col justify-between group">
+                <div class="flex justify-between items-start mb-3">
+                    <span class="bg-purpleSoft text-purpleNight text-xs font-bold px-3 py-1 rounded-full border border-purpleMain">
+                        STAGE 03
+                    </span>
+                    <span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <i class="fa-solid fa-check"></i> CLEAR
+                    </span>
+                </div>
+                <div class="my-2">
+                    <div class="text-3xl mb-1 transition-transform group-hover:scale-125 duration-300">🖼️</div>
+                    <h2 class="text-lg font-bold text-purpleNight group-hover:text-purpleDark transition-colors">
+                        Week 3 - 迷因產生器
+                    </h2>
+                    <p class="text-xs text-purpleDeep/70 mt-1">創意梗圖梗文產生器</p>
+                </div>
+                <div class="mt-3 text-right">
+                    <span class="inline-flex items-center text-xs font-bold text-purpleDark group-hover:translate-x-1 transition-transform">
+                        探索關卡 <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </span>
+                </div>
+            </a>
 
-        if (messages.length > 0) {
-          renderBoard(messages);        // 動態產出卡片
-          startCarousel();             // 啟動 3 秒輪播特效
-        } else {
-          board.innerHTML = '<p style="text-align:center; grid-column:1/-1;">目前還沒有任何留言喔！</p>';
-        }
+            <!-- BUTTON 4: Week 4 (UNLOCKED - 新解鎖關卡) -->
+            <a href="w4/index.html" class="card-3d-unlocked shiny-sweep rounded-3xl p-5 flex flex-col justify-between group">
+                <div class="flex justify-between items-start mb-3">
+                    <span class="bg-purpleSoft text-purpleNight text-xs font-bold px-3 py-1 rounded-full border border-purpleMain">
+                        STAGE 04
+                    </span>
+                    <span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <i class="fa-solid fa-check"></i> CLEAR
+                    </span>
+                </div>
+                <div class="my-2">
+                    <div class="text-3xl mb-1 transition-transform group-hover:scale-125 duration-300">🤫</div>
+                    <h2 class="text-lg font-bold text-purpleNight group-hover:text-purpleDark transition-colors">
+                        Week 4 - 秘密話
+                    </h2>
+                    <p class="text-xs text-purpleDeep/70 mt-1">分享與倾聽心聲角落</p>
+                </div>
+                <div class="mt-3 text-right">
+                    <span class="inline-flex items-center text-xs font-bold text-purpleDark group-hover:translate-x-1 transition-transform">
+                        探索關卡 <i class="fa-solid fa-arrow-right ml-1"></i>
+                    </span>
+                </div>
+            </a>
 
-      } catch (error) {
-        console.error('讀取 CSV 失敗:', error);
-        document.getElementById('loading-container').innerHTML = `
-          <div style="color: #ff4d6d; text-align: center;">
-            <i class="fa-solid fa-circle-exclamation" style="font-size: 2rem; margin-bottom: 10px;"></i>
-            <p>資料讀取失敗，請確認 Google 試算表發布設定或網址是否正確。</p>
-          </div>
-        `;
-      }
-    }
+            <!-- Week 5 -->
+            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
+                <div class="flex justify-between items-start">
+                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 05</span>
+                    <span class="text-lg">🔒</span>
+                </div>
+                <div class="my-4 text-center">
+                    <p class="text-sm font-bold text-purpleNight/50">Week 5 - 尚未解鎖</p>
+                    <p class="text-xs text-purpleDeep/40 mt-1">完成前置任務開啟</p>
+                </div>
+                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
+                    🔒 請解開下一關卷軸！
+                </div>
+            </div>
 
-    /**
-     * 2. 安全解析 CSV 格式 (處理留言內包含「逗號」與「換行」的情況)
-     */
-    function parseCSV(text) {
-      const result = [];
-      let row = [];
-      let col = '';
-      let inQuotes = false;
+            <!-- Week 6 -->
+            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
+                <div class="flex justify-between items-start">
+                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 06</span>
+                    <span class="text-lg">🔒</span>
+                </div>
+                <div class="my-4 text-center">
+                    <p class="text-sm font-bold text-purpleNight/50">Week 6 - 尚未解鎖</p>
+                    <p class="text-xs text-purpleDeep/40 mt-1">完成前置任務開啟</p>
+                </div>
+                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
+                    🔒 尚未到達開啟時間
+                </div>
+            </div>
 
-      for (let i = 0; i < text.length; i++) {
-        const c = text[i];
-        const nextC = text[i + 1];
+            <!-- Week 7 -->
+            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
+                <div class="flex justify-between items-start">
+                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 07</span>
+                    <span class="text-lg">🔒</span>
+                </div>
+                <div class="my-4 text-center">
+                    <p class="text-sm font-bold text-purpleNight/50">Week 7 - 尚未解鎖</p>
+                    <p class="text-xs text-purpleDeep/40 mt-1">完成前置任務開啟</p>
+                </div>
+                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
+                    🔒 魔法鎖頭封印中
+                </div>
+            </div>
 
-        if (c === '"') {
-          // 處理雙引號
-          if (inQuotes && nextC === '"') {
-            col += '"';
-            i++;
-          } else {
-            inQuotes = !inQuotes;
-          }
-        } else if (c === ',' && !inQuotes) {
-          // 遇到逗號且不在雙引號內，代表欄位分隔
-          row.push(col.trim());
-          col = '';
-        } else if ((c === '\r' || c === '\n') && !inQuotes) {
-          // 遇到換行且不在雙引號內，代表列分隔
-          if (c === '\r' && nextC === '\n') { i++; }
-          row.push(col.trim());
-          if (row.length > 1 || row[0] !== '') {
-            result.push(row);
-          }
-          row = [];
-          col = '';
-        } else {
-          col += c;
-        }
-      }
-      
-      // 處理最後一筆資料
-      if (col || row.length > 0) {
-        row.push(col.trim());
-        result.push(row);
-      }
+            <!-- Week 8 -->
+            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
+                <div class="flex justify-between items-start">
+                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 08</span>
+                    <span class="text-lg">🔒</span>
+                </div>
+                <div class="my-4 text-center">
+                    <p class="text-sm font-bold text-purpleNight/50">Week 8 - 中場 BOSS 關</p>
+                    <p class="text-xs text-purpleDeep/40 mt-1">等級不足無法開啟</p>
+                </div>
+                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
+                    ⚔️ BOSS 尚未降臨！
+                </div>
+            </div>
 
-      // 移除試算表第一列的標題列 (時間戳記, 姓名, 秘密話)
-      if (result.length > 0) {
-        result.shift(); 
-      }
+            <!-- Week 9 -->
+            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
+                <div class="flex justify-between items-start">
+                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 09</span>
+                    <span class="text-lg">🔒</span>
+                </div>
+                <div class="my-4 text-center">
+                    <p class="text-sm font-bold text-purpleNight/50">Week 9 - 尚未解鎖</p>
+                    <p class="text-xs text-purpleDeep/40 mt-1">完成前置任務開啟</p>
+                </div>
+                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
+                    🔒 冒險繼續進行中
+                </div>
+            </div>
 
-      // 轉換成結構化的物件陣列
-      return result.map(item => ({
-        timestamp: item[0] || '',
-        name: item[1] || '無名氏',
-        content: item[2] || '（這個人很懶，沒有留下內容）'
-      }));
-    }
+            <!-- Week 10 -->
+            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
+                <div class="flex justify-between items-start">
+                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 10</span>
+                    <span class="text-lg">🔒</span>
+                </div>
+                <div class="my-4 text-center">
+                    <p class="text-sm font-bold text-purpleNight/50">Week 10 - 尚未解鎖</p>
+                    <p class="text-xs text-purpleDeep/40 mt-1">完成前置任務開啟</p>
+                </div>
+                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
+                    🔒 魔法能量累積中
+                </div>
+            </div>
 
-    /**
-     * 3. 動態繪製卡片牆 HTML
-     */
-    function renderBoard(dataList) {
-      const board = document.getElementById('board');
-      board.innerHTML = ''; // 清空內容
+            <!-- Week 11 -->
+            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
+                <div class="flex justify-between items-start">
+                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 11</span>
+                    <span class="text-lg">🔒</span>
+                </div>
+                <div class="my-4 text-center">
+                    <p class="text-sm font-bold text-purpleNight/50">Week 11 - 尚未解鎖</p>
+                    <p class="text-xs text-purpleDeep/40 mt-1">完成前置任務開啟</p>
+                </div>
+                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
+                    🔒 探索未知新地圖
+                </div>
+            </div>
 
-      dataList.forEach((data, index) => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.dataset.index = index; // 標記索引，方便後續對應輪播
+            <!-- Week 12 -->
+            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
+                <div class="flex justify-between items-start">
+                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 12</span>
+                    <span class="text-lg">🔒</span>
+                </div>
+                <div class="my-4 text-center">
+                    <p class="text-sm font-bold text-purpleNight/50">Week 12 - 尚未解鎖</p>
+                    <p class="text-xs text-purpleDeep/40 mt-1">完成前置任務開啟</p>
+                </div>
+                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
+                    🔒 魔法結晶調製中
+                </div>
+            </div>
 
-        // 取出名字第一個字作為頭像字母
-        const firstLetter = data.name.trim().charAt(0) || '♥';
+            <!-- Week 13 -->
+            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
+                <div class="flex justify-between items-start">
+                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 13</span>
+                    <span class="text-lg">🔒</span>
+                </div>
+                <div class="my-4 text-center">
+                    <p class="text-sm font-bold text-purpleNight/50">Week 13 - 尚未解鎖</p>
+                    <p class="text-xs text-purpleDeep/40 mt-1">完成前置任務開啟</p>
+                </div>
+                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
+                    🔒 請持續積累經驗！
+                </div>
+            </div>
 
-        card.innerHTML = `
-          <div class="card-header">
-            <div class="card-avatar">${escapeHTML(firstLetter)}</div>
-            <div class="card-title">${escapeHTML(data.name)}</div>
-          </div>
-          <div class="card-content">${escapeHTML(data.content)}</div>
-          <div class="card-footer">${escapeHTML(formatTime(data.timestamp))}</div>
-        `;
+            <!-- Week 14 -->
+            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
+                <div class="flex justify-between items-start">
+                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 14</span>
+                    <span class="text-lg">🔒</span>
+                </div>
+                <div class="my-4 text-center">
+                    <p class="text-sm font-bold text-purpleNight/50">Week 14 - 尚未解鎖</p>
+                    <p class="text-xs text-purpleDeep/40 mt-1">完成前置任務開啟</p>
+                </div>
+                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
+                    🔒 高級魔法準備中
+                </div>
+            </div>
 
-        // 點擊卡片時，可手動將焦點切換到該卡片
-        card.addEventListener('click', () => {
-          highlightCard(index);
-          resetCarouselTimer(); // 重設計時器，避免手動點擊後立刻被自動切換
-        });
+            <!-- Week 15 -->
+            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
+                <div class="flex justify-between items-start">
+                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 15</span>
+                    <span class="text-lg">🔒</span>
+                </div>
+                <div class="my-4 text-center">
+                    <p class="text-sm font-bold text-purpleNight/50">Week 15 - 尚未解鎖</p>
+                    <p class="text-xs text-purpleDeep/40 mt-1">完成前置任務開啟</p>
+                </div>
+                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
+                    🔒 倒數第二關卡！
+                </div>
+            </div>
 
-        board.appendChild(card);
-      });
-    }
+            <!-- Week 16 -->
+            <div class="card-locked rounded-3xl p-5 flex flex-col justify-between group">
+                <div class="flex justify-between items-start">
+                    <span class="bg-purpleSoft/50 text-purpleDeep/60 text-xs font-bold px-3 py-1 rounded-full">STAGE 16</span>
+                    <span class="text-lg">👑</span>
+                </div>
+                <div class="my-4 text-center">
+                    <p class="text-sm font-bold text-purpleNight/50">Week 16 - 最終大挑戰</p>
+                    <p class="text-xs text-purpleDeep/40 mt-1">通關終極專題</p>
+                </div>
+                <div class="locked-tooltip bg-purpleNight text-white text-[11px] font-bold text-center py-1 px-2 rounded-xl">
+                    👑 最終大魔王關卡！
+                </div>
+            </div>
 
-    /**
-     * 4. 隨時間輪播特效 (Highlight 核心邏輯)
-     */
-    function startCarousel() {
-      const cards = document.querySelectorAll('.card');
-      if (cards.length === 0) return;
+        </main>
+    </div>
 
-      const board = document.getElementById('board');
-      board.classList.add('carousel-active'); // 啟用整體變暗效果
+    <footer class="mt-12 text-center text-xs font-bold text-purpleDeep/70 relative z-10">
+        <p class="flex items-center justify-center gap-1">
+            Made with <span class="text-purplePink">💜</span> for Web Development Class
+        </p>
+    </footer>
 
-      // 先高亮第一張
-      highlightNextCard();
-
-      // 設定 setInterval 計時器每隔指定秒數觸發
-      carouselTimer = setInterval(() => {
-        highlightNextCard();
-      }, CAROUSEL_INTERVAL);
-    }
-
-    /**
-     * 切換至下一張卡片高亮
-     */
-    function highlightNextCard() {
-      const cards = document.querySelectorAll('.card');
-      if (cards.length === 0) return;
-
-      // 遞增索引值，若超過總數則重新回到 0
-      currentIndex = (currentIndex + 1) % cards.length;
-      highlightCard(currentIndex);
-    }
-
-    /**
-     * 執行高亮特定索引的卡片
-     */
-    function highlightCard(index) {
-      const cards = document.querySelectorAll('.card');
-      
-      cards.forEach((card, i) => {
-        if (i === index) {
-          card.classList.add('highlight');
-          
-          // 確保高亮的卡片會順暢地捲動到畫面中央區域 (體驗優化)
-          card.scrollIntoView({
-            behavior: 'smooth',
-            block: 'nearest'
-          });
-        } else {
-          card.classList.remove('highlight');
-        }
-      });
-      
-      currentIndex = index;
-    }
-
-    /**
-     * 當使用者手動點擊卡片時重計秒數
-     */
-    function resetCarouselTimer() {
-      clearInterval(carouselTimer);
-      carouselTimer = setInterval(() => {
-        highlightNextCard();
-      }, CAROUSEL_INTERVAL);
-    }
-
-    // =========================================================
-    // 輔助函式區
-    // =========================================================
-
-    // 防止 XSS 攻擊，對輸入字串做轉義處理
-    function escapeHTML(str) {
-      return str
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
-
-    // 格式化時間，只顯示年月日與時間
-    function formatTime(timeStr) {
-      if (!timeStr) return '';
-      return timeStr.split(' ')[0] || timeStr;
-    }
-  </script>
 </body>
 </html>
