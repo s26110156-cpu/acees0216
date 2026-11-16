@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>雲端心電感應 · Cloud Telepathy</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Inter & Noto Sans TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Inter"', '"Noto Sans TC"', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+          colors: {
+            notion: {
+              bg: '#F7F6F3',
+              surface: '#FFFFFF',
+              hover: '#EFECE6',
+              border: '#E9E9E7',
+              text: '#37352F',
+              muted: '#787774',
+            },
+            morandi: {
+              sage: '#8FA395',
+              blue: '#8B9EB0',
+              rose: '#C59B92',
+              sand: '#B5A898',
+              purple: '#9E94A8',
+            }
+          },
+          boxShadow: {
+            'notion': '0 1px 3px rgba(55, 53, 47, 0.04), 0 6px 16px rgba(55, 53, 47, 0.03)',
+            'notion-lg': '0 4px 14px rgba(55, 53, 47, 0.07), 0 18px 36px rgba(55, 53, 47, 0.06)',
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* ==========================================================================
+       Notion 極簡基礎與捲軸樣式
+       ========================================================================== */
+    body {
+      background-color: #F7F6F3;
+      color: #37352F;
+      font-family: 'Inter', 'Noto Sans TC', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ==========================================================================
+       3D CSS 翻牌動畫核心結構 (Perspective 1200px + RotateY 180deg)
+       ========================================================================== */
+    .flip-card {
+      perspective: 1200px;
+      height: 196px;
+    }
+
+    .flip-card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+      transform-style: preserve-3d;
+    }
+
+    .flip-card.is-flipped .flip-card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .flip-card-back,
+    .flip-card-front {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      -webkit-backface-visibility: hidden;
+      backface-visibility: hidden;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .flip-card-back {
+      transform: rotateY(0deg);
+    }
+
+    .flip-card-front {
+      transform: rotateY(180deg);
+    }
+
+    /* 莫蘭迪卡背細緻幾何圓點紋理 */
+    .morandi-pattern {
+      background-image: radial-gradient(rgba(255, 255, 255, 0.25) 1px, transparent 1px);
+      background-size: 14px 14px;
+    }
+
+    /* 柔和進場動畫 */
+    @keyframes fadeSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-fade-up {
+      animation: fadeSlideUp 0.36s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    /* 慶祝橫幅呼吸微光 */
+    @keyframes gentlePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.012); }
+    }
+
+    .animate-celebrate {
+      animation: gentlePulse 2.6s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-[#8B9EB0]/20 selection:text-[#37352F]">
+
+  <!-- ========================================================================
+       Toast 全域提示訊息容器（取代原生 alert）
+       ======================================================================== -->
+  <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-2 pointer-events-none w-full max-w-md px-4"></div>
+
+  <!-- ========================================================================
+       頂部導覽列（進入房間後顯示）
+       ======================================================================== -->
+  <header id="app-header" class="hidden sticky top-0 z-30 bg-[#F7F6F3]/90 backdrop-blur-md border-b border-[#E9E9E7]">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-2">
+      <!-- 左側：品牌、房號徽章與複製邀請連結 -->
+      <div class="flex items-center gap-2 sm:gap-2.5 min-w-0">
+        <div class="w-7 h-7 rounded-lg bg-[#8B9EB0] text-white flex items-center justify-center shrink-0 shadow-xs">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="9" cy="12" r="5" />
+            <circle cx="15" cy="12" r="5" />
+          </svg>
+        </div>
+        <span class="font-semibold text-sm sm:text-base tracking-tight truncate hidden sm:inline text-[#37352F]">雲端心電感應</span>
+
+        <!-- 房號徽章 -->
+        <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white border border-[#E9E9E7] text-xs font-medium text-[#37352F]">
+          <span class="text-[#787774]">房號</span>
+          <span id="header-room-code" class="font-mono font-bold tracking-wider text-[#8B9EB0]">----</span>
+        </div>
+
+        <!-- 一鍵複製邀請連結 -->
+        <button
+          id="copy-invite-btn"
+          type="button"
+          title="複製包含房號的邀請連結"
+          class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white hover:bg-[#EFECE6] active:scale-[0.98] border border-[#E9E9E7] text-xs font-medium text-[#37352F] transition-all cursor-pointer"
+        >
+          <svg class="w-3.5 h-3.5 text-[#787774]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <span>複製邀請連結</span>
+        </button>
+      </div>
+
+      <!-- 右側：即時同步狀態指示燈 & 離開房間 -->
+      <div class="flex items-center gap-2 sm:gap-2.5 shrink-0">
+        <!-- 同步狀態指示燈（綠燈/琥珀燈/紅燈） -->
+        <div id="sync-indicator" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-[#E9E9E7] text-xs text-[#787774]">
+          <span id="sync-dot" class="w-2 h-2 rounded-full bg-[#8FA395]"></span>
+          <span id="sync-text" class="hidden md:inline">已同步</span>
+        </div>
+
+        <!-- 玩家名稱與離開房間按鈕 -->
+        <button
+          id="leave-room-btn"
+          type="button"
+          title="離開房間並返回大廳"
+          class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-white hover:bg-[#EFECE6] border border-[#E9E9E7] text-xs font-medium text-[#37352F] transition-colors cursor-pointer"
+        >
+          <span id="header-player-name" class="max-w-[76px] truncate text-[#787774]">玩家</span>
+          <span class="text-[#E9E9E7]">|</span>
+          <span>離開房間</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================
+       主內容容器
+       ======================================================================== -->
+  <main class="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+
+    <!-- ======================================================================
+         視圖 1：房間代碼分流與玩家登入畫面
+         ====================================================================== -->
+    <section id="login-view" class="max-w-md mx-auto animate-fade-up">
+      <!-- Notion 頁面頂部圖示與標題 -->
+      <div class="mb-6 text-center sm:text-left">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-white border border-[#E9E9E7] shadow-notion mb-4 text-[#8B9EB0]">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="9" cy="12" r="5.5" />
+            <circle cx="15" cy="12" r="5.5" />
+          </svg>
+        </div>
+        <div class="flex items-center justify-center sm:justify-start gap-2 mb-1.5">
+          <span class="px-2 py-0.5 rounded text-[11px] font-medium bg-[#8B9EB0]/15 text-[#667B8E] tracking-wide">CLOUD TELEPATHY · 多人默契遊戲</span>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-[#37352F]">雲端心電感應</h1>
+        <p class="text-sm text-[#787774] mt-1.5 leading-relaxed">
+          輸入暱稱後建立新房間或輸入房號加入分組，看看大家的靈感是否不謀而合。
+        </p>
+      </div>
+
+      <!-- 邀請連結自動帶入提示橫幅（有 ?room= 時顯示） -->
+      <div id="invite-prefill-banner" class="hidden mb-4 p-3 rounded-xl bg-[#8FA395]/15 border border-[#8FA395]/40 flex items-center gap-2.5 text-xs text-[#37352F]">
+        <span class="w-2 h-2 rounded-full bg-[#8FA395] shrink-0"></span>
+        <span>已透過邀請連結自動帶入房號 <strong id="prefill-room-label" class="font-mono font-bold"></strong>，輸入暱稱即可加入！</span>
+      </div>
+
+      <!-- 登入主卡片 -->
+      <div class="bg-white rounded-2xl border border-[#E9E9E7] shadow-notion p-6 sm:p-7 space-y-6">
+        <!-- 步驟 1：玩家暱稱（必填） -->
+        <div>
+          <label for="player-name-input" class="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-[#787774] mb-2">
+            <span>1. 你的玩家暱稱 <span class="text-[#C59B92]">*</span></span>
+          </label>
+          <input
+            id="player-name-input"
+            type="text"
+            maxlength="16"
+            autocomplete="off"
+            placeholder="請先輸入暱稱（例如：小宇、Mina）"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-[#F7F6F3] border border-[#E9E9E7] text-sm text-[#37352F] placeholder-[#787774]/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#8B9EB0]/40 focus:border-[#8B9EB0] transition-all"
+          />
+          <p id="nickname-error-msg" class="hidden mt-1.5 text-xs font-medium text-[#B86B5E] flex items-center gap-1">
+            <span>⚠</span>
+            <span>請先輸入你的玩家暱稱，才能建立或加入房間！</span>
+          </p>
+        </div>
+
+        <hr class="border-[#E9E9E7]" />
+
+        <!-- 步驟 2：建立新房間 (當房主) -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-[#787774]">
+              2. 開設新房間（擔任房主）
+            </span>
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#F7F6F3] border border-[#E9E9E7]">
+              <span class="text-[11px] text-[#787774]">預設房號</span>
+              <span id="generated-room-code" class="font-mono text-sm font-bold tracking-widest text-[#37352F]">----</span>
+              <button
+                id="reroll-room-btn"
+                type="button"
+                title="重新產生 4 碼房號"
+                class="p-1 rounded hover:bg-[#EFECE6] text-[#787774] hover:text-[#37352F] transition-colors cursor-pointer"
+              >
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <polyline points="1 20 1 14 7 14"></polyline>
+                  <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <button
+            id="create-room-submit"
+            type="button"
+            class="w-full py-3 px-4 rounded-xl bg-[#8FA395] hover:bg-[#7B9182] disabled:opacity-60 active:scale-[0.99] text-white font-semibold text-sm shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <svg id="create-room-icon" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M12 5v14M5 12h14"></path>
+            </svg>
+            <svg id="create-room-spinner" class="hidden w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+              <path class="opacity-85" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+            </svg>
+            <span id="create-room-btn-text">建立新房間 (當房主)</span>
+          </button>
+        </div>
+
+        <!-- GAS 連線診斷與本機模擬模式降級區塊（僅在建立房間連線失敗時顯示） -->
+        <div id="gas-diagnostic-callout" class="hidden p-4 rounded-xl bg-[#FBF6F5] border border-[#C59B92] space-y-3 text-xs">
+          <div class="flex items-start gap-2">
+            <span class="text-[#B86B5E] font-bold text-sm leading-none mt-0.5">!</span>
+            <div class="space-y-1 min-w-0">
+              <p class="font-bold text-[#37352F]">雲端試算表連線失敗，無法初始化房間</p>
+              <p id="gas-error-detail" class="text-[#787774] break-words leading-relaxed"></p>
+            </div>
+          </div>
+
+          <div class="p-3 rounded-lg bg-white border border-[#E9E9E7] space-y-1.5 text-[11px] text-[#37352F]">
+            <p class="font-semibold text-[#787774]">請檢查 Google Apps Script 後端設定：</p>
+            <p>1. 試算表內必須有名為 <code class="px-1 py-0.5 rounded bg-[#F7F6F3] font-mono font-semibold text-[#37352F]">TelepathyData</code> 的工作表分頁。</p>
+            <p>2. 部署為「網頁應用程式」時，存取權限必須設為 <strong>「所有人 (Anyone)」</strong>。</p>
+          </div>
+
+          <button
+            id="enter-demo-mode-btn"
+            type="button"
+            class="w-full py-2.5 px-3 rounded-lg bg-white hover:bg-[#EFECE6] border border-[#E9E9E7] text-xs font-semibold text-[#37352F] transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <span>以本機模擬模式進入預覽</span>
+            <svg class="w-3.5 h-3.5 text-[#787774]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+          </button>
+        </div>
+
+        <!-- 分隔線 -->
+        <div class="relative flex items-center py-0.5">
+          <div class="flex-grow border-t border-[#E9E9E7]"></div>
+          <span class="shrink mx-3 text-[11px] font-medium text-[#787774]">或加入已有房間</span>
+          <div class="flex-grow border-t border-[#E9E9E7]"></div>
+        </div>
+
+        <!-- 步驟 3：加入現有房間 -->
+        <form id="join-room-form" class="space-y-3">
+          <div>
+            <label for="join-room-input" class="block text-xs font-semibold uppercase tracking-wider text-[#787774] mb-2">
+              3. 加入現有房間
+            </label>
+            <div class="flex gap-2.5">
+              <input
+                id="join-room-input"
+                type="text"
+                maxlength="12"
+                autocomplete="off"
+                placeholder="輸入 4 碼房號"
+                class="flex-1 min-w-0 px-3.5 py-2.5 rounded-xl bg-[#F7F6F3] border border-[#E9E9E7] font-mono text-sm uppercase tracking-widest text-[#37352F] placeholder-[#787774]/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#8B9EB0]/40 focus:border-[#8B9EB0] transition-all"
+              />
+              <button
+                type="submit"
+                id="join-room-submit"
+                class="px-5 py-2.5 rounded-xl bg-[#8B9EB0] hover:bg-[#778B9E] active:scale-[0.99] text-white font-semibold text-sm shadow-xs transition-all shrink-0 cursor-pointer"
+              >
+                加入房間
+              </button>
+            </div>
+            <p id="join-room-error-msg" class="hidden mt-1.5 text-xs font-medium text-[#B86B5E]">
+              ⚠ 請輸入有效的房間號碼
+            </p>
+          </div>
+        </form>
+      </div>
+
+      <!-- 底部說明 -->
+      <p class="text-center text-xs text-[#787774] mt-6">
+        支援多組同時開房分流 · 2.5 秒雲端即時輪詢同步
+      </p>
+    </section>
+
+    <!-- ======================================================================
+         視圖 2：遊戲主舞台（進入房間後顯示）
+         ====================================================================== -->
+    <section id="game-view" class="hidden space-y-6 animate-fade-up">
+
+      <!-- 本機模擬模式提示條（僅在 Demo Mode 顯示） -->
+      <div id="demo-mode-banner" class="hidden px-4 py-2.5 rounded-xl bg-[#9E94A8]/15 border border-[#9E94A8]/35 flex flex-wrap items-center justify-between gap-2 text-xs text-[#37352F]">
+        <div class="flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded bg-[#9E94A8] text-white font-semibold text-[10px]">LOCAL DEMO</span>
+          <span>目前處於<strong>本機模擬預覽模式</strong>（未寫入 Google 試算表），所有出題、填答與 3D 翻牌皆可完整體驗。</span>
+        </div>
+      </div>
+
+      <!-- 階段 1 (setup)：等待房主出題 -->
+      <div id="state-setup" class="bg-white rounded-2xl border border-[#E9E9E7] shadow-notion p-8 sm:p-12 text-center max-w-2xl mx-auto">
+        <div class="w-14 h-14 rounded-2xl bg-[#B5A898]/15 text-[#9C8E7D] mx-auto mb-5 flex items-center justify-center">
+          <svg class="w-7 h-7 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+          </svg>
+        </div>
+        <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#F7F6F3] border border-[#E9E9E7] text-[#787774] mb-3">
+          準備階段 · Waiting for Prompt
+        </span>
+        <h2 class="text-xl sm:text-2xl font-bold text-[#37352F] mb-2">等待房主出題中...</h2>
+        <p class="text-sm text-[#787774] max-w-md mx-auto leading-relaxed">
+          題目發布後畫面將自動切換至作答區。你可以點擊上方「複製邀請連結」邀請同組夥伴加入本房！
+        </p>
+
+        <!-- 若為房主，提供快速開啟控制台引導 -->
+        <div id="setup-host-hint" class="hidden mt-6 pt-5 border-t border-[#E9E9E7]">
+          <button
+            id="setup-open-host-btn"
+            type="button"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#F7F6F3] hover:bg-[#EFECE6] border border-[#E9E9E7] text-xs font-semibold text-[#37352F] transition-colors cursor-pointer"
+          >
+            <span class="w-2 h-2 rounded-full bg-[#C59B92]"></span>
+            <span>你是本房房主 · 點此開啟房主控制台出題</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 階段 2 & 3 共用：題目展示看板（playing / revealed 顯示） -->
+      <div id="question-board" class="hidden bg-white rounded-2xl border border-[#E9E9E7] shadow-notion p-6 sm:p-8">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <span id="round-phase-badge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#8B9EB0]/15 text-[#667B8E]">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#8B9EB0]"></span>
+            心電感應作答中
+          </span>
+          <span class="text-xs text-[#787774]">
+            目前已作答：<strong id="answered-count-label" class="text-[#37352F] font-semibold">0</strong> 人
+          </span>
+        </div>
+
+        <h2 id="current-question-text" class="text-xl sm:text-2xl md:text-3xl font-bold text-[#37352F] leading-snug tracking-tight">
+          題目載入中...
+        </h2>
+
+        <!-- 玩家填答區（僅在 playing 狀態顯示） -->
+        <div id="player-answer-box" class="mt-6 pt-6 border-t border-[#E9E9E7]">
+          <!-- 尚未送出或正在修改時顯示的表單 -->
+          <form id="submit-answer-form" class="flex flex-col sm:flex-row gap-3">
+            <input
+              id="answer-input"
+              type="text"
+              maxlength="40"
+              autocomplete="off"
+              placeholder="輸入你腦海中第一個想到的答案..."
+              class="flex-1 px-4 py-3 rounded-xl bg-[#F7F6F3] border border-[#E9E9E7] text-sm sm:text-base text-[#37352F] placeholder-[#787774]/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#8B9EB0]/40 focus:border-[#8B9EB0] transition-all"
+            />
+            <button
+              type="submit"
+              id="submit-answer-btn"
+              class="px-6 py-3 rounded-xl bg-[#8B9EB0] hover:bg-[#778B9E] active:scale-[0.99] text-white font-semibold text-sm sm:text-base shadow-xs transition-all shrink-0 cursor-pointer"
+            >
+              送出答案
+            </button>
+          </form>
+
+          <!-- 已送出後的鎖定狀態提示（開牌前仍可點擊修改答案） -->
+          <div id="answer-submitted-bar" class="hidden flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-[#8FA395]/12 border border-[#8FA395]/35">
+            <div class="flex items-center gap-2.5 text-sm">
+              <span class="w-6 h-6 rounded-full bg-[#8FA395] text-white flex items-center justify-center shrink-0">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </span>
+              <span class="text-[#37352F]">
+                已鎖定你的感應答案：<strong id="my-submitted-preview" class="font-semibold text-[#5E7364]"></strong>
+              </span>
+            </div>
+            <button
+              id="edit-answer-btn"
+              type="button"
+              class="self-start sm:self-auto px-3 py-1.5 rounded-lg bg-white hover:bg-[#EFECE6] border border-[#E9E9E7] text-xs font-medium text-[#787774] hover:text-[#37352F] transition-colors cursor-pointer"
+            >
+              修改答案
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 階段 3 (revealed)：開牌後的默契達成橫幅 / 統計摘要 -->
+      <div id="consensus-banner" class="hidden rounded-2xl p-5 sm:p-6 border transition-all"></div>
+
+      <!-- 卡牌牆區域（playing 顯示未開牌卡背；revealed 同步觸發 3D 翻牌） -->
+      <div id="cards-section" class="hidden space-y-3">
+        <div class="flex items-center justify-between px-1">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-[#787774]">
+            玩家感應卡牌牆
+          </h3>
+          <span id="cards-hint-text" class="text-xs text-[#787774]">
+            等待房主按下開牌後同步揭曉
+          </span>
+        </div>
+
+        <!-- 無人作答時的空狀態 -->
+        <div id="empty-cards-placeholder" class="bg-white/70 rounded-2xl border border-dashed border-[#E9E9E7] py-12 px-4 text-center text-sm text-[#787774]">
+          目前還沒有玩家送出答案，送出後你的專屬感應卡就會出現在這裡！
+        </div>
+
+        <!-- 3D 翻牌響應式網格 -->
+        <div id="cards-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- ========================================================================
+       右下角低調「隱藏房主控制台按鈕」(支援 Alt + H 快捷鍵)
+       ======================================================================== -->
+  <button
+    id="host-trigger-btn"
+    type="button"
+    title="房主控制台 (快捷鍵 Alt + H)"
+    aria-label="開啟房主控制台"
+    class="hidden fixed bottom-5 right-5 z-40 group items-center gap-2 px-3 py-2.5 rounded-full bg-white/85 hover:bg-white backdrop-blur-xs border border-[#E9E9E7] shadow-notion text-[#787774] hover:text-[#37352F] opacity-25 hover:opacity-95 focus:opacity-95 transition-all duration-300 cursor-pointer"
+  >
+    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="4" y1="21" x2="4" y2="14"></line>
+      <line x1="4" y1="10" x2="4" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="12"></line>
+      <line x1="12" y1="8" x2="12" y2="3"></line>
+      <line x1="20" y1="21" x2="20" y2="16"></line>
+      <line x1="20" y1="12" x2="20" y2="3"></line>
+      <line x1="1" y1="14" x2="7" y2="14"></line>
+      <line x1="9" y1="8" x2="15" y2="8"></line>
+      <line x1="17" y1="16" x2="23" y2="16"></line>
+    </svg>
+    <span class="max-w-0 overflow-hidden group-hover:max-w-[96px] transition-all duration-300 text-xs font-medium whitespace-nowrap">
+      房主控制台
+    </span>
+  </button>
+
+  <!-- ========================================================================
+       房主控制台浮動抽屜面板 (Host Console Drawer)
+       ======================================================================== -->
+  <aside
+    id="host-drawer"
+    class="hidden fixed bottom-16 right-4 sm:right-5 z-40 w-[calc(100vw-2rem)] sm:w-[388px] bg-white rounded-2xl border border-[#E9E9E7] shadow-notion-lg overflow-hidden animate-fade-up"
+  >
+    <!-- 抽屜標題列 -->
+    <div class="px-5 py-3.5 bg-[#F7F6F3] border-b border-[#E9E9E7] flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-[#C59B92]"></span>
+        <h3 class="text-xs font-bold uppercase tracking-wider text-[#37352F]">房主控制台 · Host Console</h3>
+      </div>
+      <button
+        id="close-host-drawer-btn"
+        type="button"
+        aria-label="收合房主控制台"
+        class="p-1 rounded-lg hover:bg-[#EFECE6] text-[#787774] hover:text-[#37352F] transition-colors cursor-pointer"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- 抽屜主體操作區 -->
+    <div class="p-5 space-y-4">
+      <!-- 出題區塊 -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <label for="host-question-input" class="text-xs font-semibold text-[#37352F]">
+            設定本局默契題目
+          </label>
+          <button
+            id="random-prompt-btn"
+            type="button"
+            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#F7F6F3] hover:bg-[#EFECE6] border border-[#E9E9E7] text-[11px] font-medium text-[#8B9EB0] hover:text-[#667B8E] transition-colors cursor-pointer"
+          >
+            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="3"></rect>
+              <circle cx="8.5" cy="8.5" r="1" fill="currentColor"></circle>
+              <circle cx="15.5" cy="15.5" r="1" fill="currentColor"></circle>
+              <circle cx="12" cy="12" r="1" fill="currentColor"></circle>
+            </svg>
+            <span>隨機默契題庫</span>
+          </button>
+        </div>
+
+        <textarea
+          id="host-question-input"
+          rows="2"
+          maxlength="80"
+          placeholder="輸入題目，例如：說到台灣夜市必吃美食，第一個想到什麼？"
+          class="w-full px-3 py-2 rounded-xl bg-[#F7F6F3] border border-[#E9E9E7] text-sm text-[#37352F] placeholder-[#787774]/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#8B9EB0]/40 focus:border-[#8B9EB0] resize-none transition-all"
+        ></textarea>
+
+        <button
+          id="host-set-question-btn"
+          type="button"
+          class="w-full py-2.5 px-4 rounded-xl bg-[#8B9EB0] hover:bg-[#778B9E] active:scale-[0.99] text-white text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+          <span>發布題目並開始</span>
+        </button>
+      </div>
+
+      <hr class="border-[#E9E9E7]" />
+
+      <!-- 即時作答進度與開牌 / 重置按鈕 -->
+      <div class="space-y-2.5">
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-[#787774]">即時作答進度</span>
+          <span class="px-2.5 py-0.5 rounded-full bg-[#8FA395]/15 text-[#5E7364] font-semibold">
+            目前已有 <span id="host-answered-count">0</span> 人作答
+          </span>
+        </div>
+
+        <!-- 已作答玩家名單小標籤 -->
+        <div id="host-player-pills" class="flex flex-wrap gap-1.5 min-h-[24px]">
+          <span class="text-[11px] text-[#787774]/70">尚無玩家送出答案</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5 pt-1">
+          <!-- 全場同步開牌按鈕 -->
+          <button
+            id="host-reveal-btn"
+            type="button"
+            class="py-2.5 px-3 rounded-xl bg-[#8FA395] hover:bg-[#7B9182] disabled:opacity-45 disabled:pointer-events-none active:scale-[0.99] text-white text-xs font-semibold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <span>全場同步開牌</span>
+          </button>
+
+          <!-- 重置本局 (回到等待) 2-step 確認按鈕 -->
+          <button
+            id="host-reset-btn"
+            type="button"
+            class="py-2.5 px-3 rounded-xl bg-[#F7F6F3] hover:bg-[#C59B92]/15 border border-[#E9E9E7] hover:border-[#C59B92] text-[#787774] hover:text-[#9E675C] active:scale-[0.99] text-xs font-medium transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            <span id="host-reset-label">重置本局 (回到等待)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ========================================================================
+       Vanilla JavaScript 核心邏輯（全部封裝於 DOMContentLoaded 中）
+       ======================================================================== -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      /**
+       * 1. Google Apps Script 後端設定
+       */
+      const SHEET_NAME = 'TelepathyData';
+      const GAS_API_URL = 'https://script.google.com/macros/s/AKfycby6WoE83m3yHI2CywGrPiQpSWH4NPGJIIjMcs4UWRcSx0S0LBReObThuB47yv1tGJ0U/exec';
+      const POLL_INTERVAL_MS = 2500;
+
+      /**
+       * 2. 莫蘭迪色系卡背調色盤（Sage Green, Dusty Blue, Terracotta Rose, Warm Sand, Morandi Purple）
+       */
+      const MORANDI_PALETTES = [
+        { bg: 'bg-[#8FA395]', border: 'border-[#7B9182]', badge: 'bg-white/20 text-white' },
+        { bg: 'bg-[#8B9EB0]', border: 'border-[#778B9E]', badge: 'bg-white/20 text-white' },
+        { bg: 'bg-[#C59B92]', border: 'border-[#B0857C]', badge: 'bg-white/20 text-white' },
+        { bg: 'bg-[#B5A898]', border: 'border-[#9F9282]', badge: 'bg-white/20 text-white' },
+        { bg: 'bg-[#9E94A8]', border: 'border-[#897F94]', badge: 'bg-white/20 text-white' },
+      ];
+
+      /**
+       * 3. 隨機默契題庫
+       */
+      const PROMPT_BANK = [
+        '說到台灣夜市必吃美食，第一個想到什麼？',
+        '如果明天突然放颱風假，你最想在家做什麼？',
+        '手搖飲料店最經典不敗的品項是哪一杯？',
+        '用一種動物來形容我們這一組的默契？',
+        '去便利商店買微波食品時的第一首選？',
+        '學生時代最害怕聽到老師說的一句口頭禪？',
+        '中樂透頭獎後，第一件最想買的東西是什麼？',
+        '最能代表「星期一早上」的一種顏色或食物？',
+        '如果可以擁有一種超能力，你最想要哪一種？',
+        '去 KTV 唱歌時，每個人一定會點的一首歌或歌手？',
+        '夏天的時候，最能代表消暑的關鍵字是什麼？',
+        '早餐店裡最考驗靈魂的經典餐點是什麼？'
+      ];
+
+      /**
+       * 4. 應用程式全域狀態
+       */
+      const state = {
+        room: '',
+        playerName: '',
+        isHostMode: false,
+        isDemoMode: false,
+        isFetching: false,
+        pollTimer: null,
+        roomData: {
+          status: 'setup',
+          question: '',
+          answers: {},
+        },
+        demoStore: {
+          status: 'setup',
+          question: '',
+          answers: {},
+        },
+        localSubmittedAnswer: '',
+        isEditingAnswer: false,
+        lastRenderedSignature: '',
+        lastPromptIndex: -1,
+        isResetConfirming: false,
+        resetConfirmTimer: null,
+      };
+
+      /**
+       * 5. DOM 元素集中初始化參照
+       */
+      const dom = {
+        toastContainer: document.getElementById('toast-container'),
+        appHeader: document.getElementById('app-header'),
+        headerRoomCode: document.getElementById('header-room-code'),
+        copyInviteBtn: document.getElementById('copy-invite-btn'),
+        syncDot: document.getElementById('sync-dot'),
+        syncText: document.getElementById('sync-text'),
+        leaveRoomBtn: document.getElementById('leave-room-btn'),
+        headerPlayerName: document.getElementById('header-player-name'),
+
+        // 登入視圖
+        loginView: document.getElementById('login-view'),
+        invitePrefillBanner: document.getElementById('invite-prefill-banner'),
+        prefillRoomLabel: document.getElementById('prefill-room-label'),
+        playerNameInput: document.getElementById('player-name-input'),
+        nicknameErrorMsg: document.getElementById('nickname-error-msg'),
+        generatedRoomCode: document.getElementById('generated-room-code'),
+        rerollRoomBtn: document.getElementById('reroll-room-btn'),
+        createRoomSubmit: document.getElementById('create-room-submit'),
+        createRoomIcon: document.getElementById('create-room-icon'),
+        createRoomSpinner: document.getElementById('create-room-spinner'),
+        createRoomBtnText: document.getElementById('create-room-btn-text'),
+        gasDiagnosticCallout: document.getElementById('gas-diagnostic-callout'),
+        gasErrorDetail: document.getElementById('gas-error-detail'),
+        enterDemoModeBtn: document.getElementById('enter-demo-mode-btn'),
+        joinRoomForm: document.getElementById('join-room-form'),
+        joinRoomInput: document.getElementById('join-room-input'),
+        joinRoomSubmit: document.getElementById('join-room-submit'),
+        joinRoomErrorMsg: document.getElementById('join-room-error-msg'),
+
+        // 遊戲主舞台
+        gameView: document.getElementById('game-view'),
+        demoModeBanner: document.getElementById('demo-mode-banner'),
+        stateSetup: document.getElementById('state-setup'),
+        setupHostHint: document.getElementById('setup-host-hint'),
+        setupOpenHostBtn: document.getElementById('setup-open-host-btn'),
+        questionBoard: document.getElementById('question-board'),
+        roundPhaseBadge: document.getElementById('round-phase-badge'),
+        answeredCountLabel: document.getElementById('answered-count-label'),
+        currentQuestionText: document.getElementById('current-question-text'),
+        playerAnswerBox: document.getElementById('player-answer-box'),
+        submitAnswerForm: document.getElementById('submit-answer-form'),
+        answerInput: document.getElementById('answer-input'),
+        submitAnswerBtn: document.getElementById('submit-answer-btn'),
+        answerSubmittedBar: document.getElementById('answer-submitted-bar'),
+        mySubmittedPreview: document.getElementById('my-submitted-preview'),
+        editAnswerBtn: document.getElementById('edit-answer-btn'),
+        consensusBanner: document.getElementById('consensus-banner'),
+        cardsSection: document.getElementById('cards-section'),
+        cardsHintText: document.getElementById('cards-hint-text'),
+        emptyCardsPlaceholder: document.getElementById('empty-cards-placeholder'),
+        cardsGrid: document.getElementById('cards-grid'),
+
+        // 房主控制台
+        hostTriggerBtn: document.getElementById('host-trigger-btn'),
+        hostDrawer: document.getElementById('host-drawer'),
+        closeHostDrawerBtn: document.getElementById('close-host-drawer-btn'),
+        randomPromptBtn: document.getElementById('random-prompt-btn'),
+        hostQuestionInput: document.getElementById('host-question-input'),
+        hostSetQuestionBtn: document.getElementById('host-set-question-btn'),
+        hostAnsweredCount: document.getElementById('host-answered-count'),
+        hostPlayerPills: document.getElementById('host-player-pills'),
+        hostRevealBtn: document.getElementById('host-reveal-btn'),
+        hostResetBtn: document.getElementById('host-reset-btn'),
+        hostResetLabel: document.getElementById('host-reset-label'),
+      };
+
+      /**
+       * 6. 產生 4 碼英數房號（排除易混淆的 O / 0 / I / 1）
+       */
+      function generateRoomCode() {
+        const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let result = '';
+        for (let i = 0; i < 4; i++) {
+          result += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+        }
+        return result;
+      }
+
+      /**
+       * 7. 更新頂部同步狀態指示燈（綠燈 / 琥珀燈 / 紅燈）
+       */
+      function setSyncStatus(status) {
+        if (state.isDemoMode) {
+          dom.syncDot.className = 'w-2 h-2 rounded-full bg-[#9E94A8]';
+          dom.syncText.textContent = '本機模擬';
+          return;
+        }
+        if (status === 'syncing') {
+          dom.syncDot.className = 'w-2 h-2 rounded-full bg-[#D4A359] animate-pulse';
+          dom.syncText.textContent = '同步中';
+        } else if (status === 'error') {
+          dom.syncDot.className = 'w-2 h-2 rounded-full bg-[#C59B92]';
+          dom.syncText.textContent = '連線異常';
+        } else {
+          dom.syncDot.className = 'w-2 h-2 rounded-full bg-[#8FA395]';
+          dom.syncText.textContent = '已同步';
+        }
+      }
+
+      /**
+       * 8. Notion 風格 Toast 提示（取代原生 alert）
+       */
+      function showToast(message, type = 'info') {
+        const styles = {
+          success: { dot: 'bg-[#8FA395]', border: 'border-[#8FA395]/60' },
+          warning: { dot: 'bg-[#B5A898]', border: 'border-[#B5A898]/70' },
+          error: { dot: 'bg-[#C59B92]', border: 'border-[#C59B92]/70' },
+          info: { dot: 'bg-[#8B9EB0]', border: 'border-[#E9E9E7]' },
+        };
+        const current = styles[type] || styles.info;
+
+        const toast = document.createElement('div');
+        toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-white/95 backdrop-blur-md border ${current.border} shadow-notion-lg text-xs sm:text-sm font-medium text-[#37352F] animate-fade-up`;
+        toast.innerHTML = `
+          <span class="w-2 h-2 rounded-full ${current.dot} shrink-0"></span>
+          <span>${escapeHtml(message)}</span>
+        `;
+
+        dom.toastContainer.appendChild(toast);
+
+        setTimeout(() => {
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateY(-6px)';
+          toast.style.transition = 'all 0.25s ease';
+          setTimeout(() => toast.remove(), 260);
+        }, 2800);
+      }
+
+      /**
+       * 9. 相容 iFrame 的剪貼簿複製工具
+       */
+      function copyTextToClipboard(text) {
+        try {
+          const temp = document.createElement('textarea');
+          temp.value = text;
+          temp.setAttribute('readonly', '');
+          temp.style.position = 'fixed';
+          temp.style.opacity = '0';
+          document.body.appendChild(temp);
+          temp.select();
+          const ok = document.execCommand('copy');
+          document.body.removeChild(temp);
+          return ok;
+        } catch (err) {
+          return false;
+        }
+      }
+
+      /**
+       * 10. 開牌時的柔和 Web Audio API 三和弦提示音
+       */
+      function playRevealChime() {
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) return;
+          const ctx = new AudioCtx();
+          const notes = [523.25, 659.25, 783.99]; // C5 - E5 - G5
+
+          notes.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.09);
+
+            gain.gain.setValueAtTime(0.0001, ctx.currentTime + idx * 0.09);
+            gain.gain.exponentialRampToValueAtTime(0.06, ctx.currentTime + idx * 0.09 + 0.03);
+            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + idx * 0.09 + 0.55);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + idx * 0.09);
+            osc.stop(ctx.currentTime + idx * 0.09 + 0.6);
+          });
+        } catch (e) {
+          // 忽略瀏覽器音訊自動播放限制
+        }
+      }
+
+      /**
+       * 11. 安全解析 GAS 回應文字（若 GAS 回傳 HTML 錯誤頁則拋出明確診斷訊息）
+       */
+      function parseGasResponseText(rawText) {
+        let parsed;
+        try {
+          parsed = JSON.parse(rawText);
+        } catch (err) {
+          const trimmed = String(rawText || '').trim();
+          if (trimmed.startsWith('<') || trimmed.includes('<!DOCTYPE') || trimmed.includes('<html')) {
+            throw new Error(
+              `GAS 回傳了 HTML 錯誤頁（而非 JSON）。請確認試算表已有「${SHEET_NAME}」工作表分頁，且網頁應用程式部署權限為「所有人 Anyone」。`
+            );
+          }
+          throw new Error(`無法解析伺服器回應：${trimmed.slice(0, 100)}`);
+        }
+        return parsed;
+      }
+
+      /**
+       * 12. CORS-Safe GET 輪詢（不附加任何自訂 Header 避免觸發 OPTIONS 預檢）
+       */
+      async function fetchRoomState() {
+        if (!state.room || state.isFetching) return;
+
+        // 若處於本機模擬模式，直接讀取本地模擬資料
+        if (state.isDemoMode) {
+          applyRoomDataUpdate({
+            status: state.demoStore.status,
+            question: state.demoStore.question,
+            answers: { ...state.demoStore.answers },
+          });
+          setSyncStatus('synced');
+          return;
+        }
+
+        state.isFetching = true;
+        setSyncStatus('syncing');
+
+        try {
+          const url = `${GAS_API_URL}?room=${encodeURIComponent(state.room)}&_t=${Date.now()}`;
+          const res = await fetch(url, {
+            method: 'GET',
+            redirect: 'follow',
+          });
+
+          const rawText = await res.text();
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+          }
+
+          const data = parseGasResponseText(rawText);
+          const normalized = {
+            status: data.status || 'setup',
+            question: data.question || '',
+            answers: data.answers && typeof data.answers === 'object' ? data.answers : {},
+          };
+
+          applyRoomDataUpdate(normalized);
+          setSyncStatus('synced');
+        } catch (error) {
+          console.error('輪詢房間狀態錯誤:', error);
+          setSyncStatus('error');
+        } finally {
+          state.isFetching = false;
+        }
+      }
+
+      /**
+       * 13. CORS-Safe POST 指令傳送（支援雲端 GAS 與本機模擬模式）
+       */
+      async function postGasAction(payload) {
+        // 本機模擬模式處理
+        if (state.isDemoMode) {
+          if (payload.action === 'reset') {
+            state.demoStore = { status: 'setup', question: '', answers: {} };
+          } else if (payload.action === 'set_question') {
+            state.demoStore = {
+              status: 'playing',
+              question: payload.question,
+              answers: {
+                '小嵐 (模擬隊友)': '珍珠奶茶',
+              },
+            };
+          } else if (payload.action === 'submit_answer') {
+            state.demoStore.answers[payload.playerName] = payload.answer;
+          } else if (payload.action === 'reveal') {
+            state.demoStore.status = 'revealed';
+          }
+          await fetchRoomState();
+          return { success: true };
+        }
+
+        setSyncStatus('syncing');
+        try {
+          const res = await fetch(GAS_API_URL, {
+            method: 'POST',
+            redirect: 'follow',
+            headers: {
+              'Content-Type': 'text/plain;charset=utf-8',
+            },
+            body: JSON.stringify({
+              room: state.room,
+              ...payload,
+            }),
+          });
+
+          const rawText = await res.text();
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status} 連線錯誤`);
+          }
+
+          const result = parseGasResponseText(rawText);
+          setSyncStatus('synced');
+          return result;
+        } catch (error) {
+          setSyncStatus('error');
+          throw error;
+        }
+      }
+
+      /**
+       * 14. 套用房間最新資料並更新畫面
+       */
+      function applyRoomDataUpdate(newData) {
+        const prevStatus = state.roomData.status;
+        const prevQuestion = state.roomData.question;
+        state.roomData = newData;
+
+        if (newData.status === 'setup') {
+          state.localSubmittedAnswer = '';
+          state.isEditingAnswer = false;
+          dom.answerInput.value = '';
+        }
+
+        if (newData.question !== prevQuestion) {
+          state.localSubmittedAnswer = '';
+          state.isEditingAnswer = false;
+          dom.answerInput.value = '';
+        }
+
+        if (newData.answers && Object.prototype.hasOwnProperty.call(newData.answers, state.playerName)) {
+          state.localSubmittedAnswer = newData.answers[state.playerName];
+        }
+
+        if (prevStatus !== 'revealed' && newData.status === 'revealed') {
+          playRevealChime();
+        }
+
+        renderGameArena(prevStatus);
+        renderHostConsoleStatus();
+      }
+
+      /**
+       * 15. 渲染遊戲主舞台（setup / playing / revealed）
+       */
+      function renderGameArena(prevStatus) {
+        const { status, question, answers } = state.roomData;
+        const playerNames = Object.keys(answers);
+        const answeredCount = playerNames.length;
+
+        dom.answeredCountLabel.textContent = String(answeredCount);
+
+        // 階段 1：setup
+        if (status === 'setup') {
+          dom.stateSetup.classList.remove('hidden');
+          dom.questionBoard.classList.add('hidden');
+          dom.consensusBanner.classList.add('hidden');
+          dom.cardsSection.classList.add('hidden');
+          if (state.isHostMode) {
+            dom.setupHostHint.classList.remove('hidden');
+          } else {
+            dom.setupHostHint.classList.add('hidden');
+          }
+          state.lastRenderedSignature = 'setup';
+          return;
+        }
+
+        // 階段 2 & 3：playing / revealed
+        dom.stateSetup.classList.add('hidden');
+        dom.questionBoard.classList.remove('hidden');
+        dom.cardsSection.classList.remove('hidden');
+        dom.currentQuestionText.textContent = question || '（未設定題目）';
+
+        if (status === 'playing') {
+          dom.roundPhaseBadge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#8B9EB0]/15 text-[#667B8E]';
+          dom.roundPhaseBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-[#8B9EB0] animate-pulse"></span> 心電感應作答中';
+
+          dom.playerAnswerBox.classList.remove('hidden');
+          if (state.localSubmittedAnswer && !state.isEditingAnswer) {
+            dom.submitAnswerForm.classList.add('hidden');
+            dom.answerSubmittedBar.classList.remove('hidden');
+            dom.mySubmittedPreview.textContent = state.localSubmittedAnswer;
+          } else {
+            dom.submitAnswerForm.classList.remove('hidden');
+            dom.answerSubmittedBar.classList.add('hidden');
+          }
+
+          dom.consensusBanner.classList.add('hidden');
+          dom.cardsHintText.textContent = '已鎖定感應卡背 · 等待房主按下全場同步開牌';
+        } else if (status === 'revealed') {
+          dom.roundPhaseBadge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-[#8FA395]/20 text-[#5E7364]';
+          dom.roundPhaseBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-[#8FA395]"></span> 全場同步開牌揭曉';
+
+          dom.playerAnswerBox.classList.add('hidden');
+          dom.cardsHintText.textContent = '全場卡牌已翻開';
+
+          renderConsensusBanner(answers);
+        }
+
+        // 防閃爍比對簽章（playing 狀態下絕不提前把答案放入 DOM）
+        const signature = JSON.stringify({
+          status,
+          players: playerNames,
+          revealedAnswers: status === 'revealed' ? answers : null,
+        });
+
+        if (signature !== state.lastRenderedSignature) {
+          renderCardsWall(playerNames, answers, status, prevStatus);
+          state.lastRenderedSignature = signature;
+        }
+      }
+
+      /**
+       * 16. 渲染 3D CSS 翻牌卡牌牆（防作弊卡背 + index * 150ms 交錯翻牌）
+       */
+      function renderCardsWall(playerNames, answers, status, prevStatus) {
+        if (playerNames.length === 0) {
+          dom.emptyCardsPlaceholder.classList.remove('hidden');
+          dom.cardsGrid.innerHTML = '';
+          return;
+        }
+
+        dom.emptyCardsPlaceholder.classList.add('hidden');
+        const isJustRevealed = status === 'revealed' && prevStatus !== 'revealed';
+        dom.cardsGrid.innerHTML = '';
+
+        playerNames.forEach((player, index) => {
+          const palette = MORANDI_PALETTES[index % MORANDI_PALETTES.length];
+          const isMe = player === state.playerName;
+          const initialChar = (player.trim().charAt(0) || '?').toUpperCase();
+
+          const cardWrapper = document.createElement('div');
+          cardWrapper.className = 'flip-card';
+
+          const cardInner = document.createElement('div');
+          cardInner.className = 'flip-card-inner';
+          cardInner.style.transitionDelay = status === 'revealed' ? `${index * 150}ms` : '0ms';
+
+          // 卡背（playing 階段朝前，絕不渲染答案文字）
+          const cardBack = document.createElement('div');
+          cardBack.className = `flip-card-back ${palette.bg} ${palette.border} border morandi-pattern p-5 flex flex-col justify-between text-white shadow-notion`;
+          cardBack.innerHTML = `
+            <div class="flex items-center justify-between">
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-medium ${palette.badge}">
+                已感應鎖定
+              </span>
+              ${isMe ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white text-[#37352F]">你</span>' : ''}
+            </div>
+
+            <div class="my-auto flex flex-col items-center text-center">
+              <div class="w-11 h-11 rounded-full bg-white/20 backdrop-blur-xs border border-white/30 flex items-center justify-center text-base font-bold mb-2">
+                ${escapeHtml(initialChar)}
+              </div>
+              <p class="font-semibold text-base tracking-tight truncate max-w-full px-2">
+                ${escapeHtml(player)}
+              </p>
+            </div>
+
+            <div class="flex items-center justify-center gap-1.5 text-[11px] text-white/85">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <span>等待同步開牌</span>
+            </div>
+          `;
+
+          // 卡面（僅在 revealed 階段渲染答案內容）
+          const cardFront = document.createElement('div');
+          cardFront.className = 'flip-card-front bg-white border border-[#E9E9E7] p-5 flex flex-col justify-between shadow-notion';
+
+          if (status === 'revealed') {
+            const answerText = String(answers[player] ?? '');
+            cardFront.innerHTML = `
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="w-6 h-6 rounded-full ${palette.bg} text-white text-xs font-bold flex items-center justify-center shrink-0">
+                    ${escapeHtml(initialChar)}
+                  </span>
+                  <span class="text-xs font-semibold text-[#787774] truncate">
+                    ${escapeHtml(player)}
+                  </span>
+                </div>
+                ${isMe ? '<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-[#F7F6F3] border border-[#E9E9E7] text-[#787774] shrink-0">你</span>' : ''}
+              </div>
+
+              <div class="my-auto py-2 text-center">
+                <p class="text-lg sm:text-xl font-bold text-[#37352F] break-words leading-snug">
+                  ${escapeHtml(answerText)}
+                </p>
+              </div>
+
+              <div class="pt-2 border-t border-[#F7F6F3] flex items-center justify-center">
+                <span class="w-6 h-1 rounded-full ${palette.bg} opacity-65"></span>
+              </div>
+            `;
+          }
+
+          cardInner.appendChild(cardBack);
+          cardInner.appendChild(cardFront);
+          cardWrapper.appendChild(cardInner);
+          dom.cardsGrid.appendChild(cardWrapper);
+
+          if (status === 'revealed') {
+            if (isJustRevealed) {
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  cardWrapper.classList.add('is-flipped');
+                });
+              });
+            } else {
+              cardWrapper.classList.add('is-flipped');
+            }
+          }
+        });
+      }
+
+      /**
+       * 17. 開牌後的默契達成橫幅與百分比長條統計
+       */
+      function renderConsensusBanner(answers) {
+        const entries = Object.entries(answers);
+        if (entries.length === 0) {
+          dom.consensusBanner.classList.add('hidden');
+          return;
+        }
+
+        const normalizedList = entries.map(([name, ans]) => ({
+          name,
+          raw: String(ans).trim(),
+          norm: String(ans).trim().toLowerCase(),
+        }));
+
+        const uniqueSet = new Set(normalizedList.map((item) => item.norm));
+        const isFullTelepathy = normalizedList.length >= 2 && uniqueSet.size === 1;
+
+        dom.consensusBanner.classList.remove('hidden');
+
+        if (isFullTelepathy) {
+          dom.consensusBanner.className = 'rounded-2xl p-5 sm:p-6 bg-[#8FA395]/18 border border-[#8FA395] shadow-notion animate-celebrate flex flex-col sm:flex-row items-center justify-between gap-4';
+          dom.consensusBanner.innerHTML = `
+            <div class="flex items-center gap-3.5 text-center sm:text-left">
+              <div class="w-12 h-12 rounded-2xl bg-[#8FA395] text-white flex items-center justify-center shrink-0 shadow-xs">
+                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                  <path d="M12 2l2.9 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l7.1-1.01L12 2z"/>
+                </svg>
+              </div>
+              <div>
+                <span class="inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-[#8FA395] text-white tracking-wider mb-1">
+                  100% TELEPATHY MATCH
+                </span>
+                <h3 class="text-lg sm:text-xl font-bold text-[#37352F]">
+                  心電感應大成功！全員默契達成
+                </h3>
+                <p class="text-xs sm:text-sm text-[#5E7364] mt-0.5">
+                  全場 ${normalizedList.length} 位玩家不約而同寫下了「<strong>${escapeHtml(normalizedList[0].raw)}</strong>」
+                </p>
+              </div>
+            </div>
+          `;
+        } else {
+          const freqMap = {};
+          normalizedList.forEach((item) => {
+            if (!freqMap[item.norm]) {
+              freqMap[item.norm] = { display: item.raw, count: 0, players: [] };
+            }
+            freqMap[item.norm].count += 1;
+            freqMap[item.norm].players.push(item.name);
+          });
+
+          const sortedGroups = Object.values(freqMap).sort((a, b) => b.count - a.count);
+          const totalPlayers = normalizedList.length;
+
+          const distributionHtml = sortedGroups
+            .map((group) => {
+              const pct = Math.round((group.count / totalPlayers) * 100);
+              const playerTags = group.players
+                .map(
+                  (p) =>
+                    `<span class="px-1.5 py-0.5 rounded bg-white border border-[#E9E9E7] text-[11px] text-[#787774]">${escapeHtml(p)}</span>`
+                )
+                .join('');
+
+              return `
+                <div class="p-3 rounded-xl bg-[#F7F6F3] border border-[#E9E9E7] space-y-2">
+                  <div class="flex items-center justify-between gap-2 text-xs">
+                    <span class="font-bold text-[#37352F] truncate">${escapeHtml(group.display)}</span>
+                    <span class="font-mono font-semibold text-[#8B9EB0] shrink-0">${group.count} 票 (${pct}%)</span>
+                  </div>
+                  <div class="w-full h-1.5 rounded-full bg-[#E9E9E7] overflow-hidden">
+                    <div class="h-full rounded-full bg-[#8B9EB0] transition-all duration-500" style="width: ${pct}%"></div>
+                  </div>
+                  <div class="flex flex-wrap gap-1 pt-0.5">
+                    ${playerTags}
+                  </div>
+                </div>
+              `;
+            })
+            .join('');
+
+          dom.consensusBanner.className = 'rounded-2xl p-5 sm:p-6 bg-white border border-[#E9E9E7] shadow-notion space-y-4';
+          dom.consensusBanner.innerHTML = `
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-[#8B9EB0]/15 text-[#667B8E] flex items-center justify-center shrink-0">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="9" cy="12" r="5" />
+                  <circle cx="15" cy="12" r="5" />
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-sm sm:text-base font-bold text-[#37352F]">
+                  開牌結果分布統計（共 ${uniqueSet.size} 種答案）
+                </h3>
+                <p class="text-xs text-[#787774] mt-0.5">
+                  ${sortedGroups[0].count >= 2
+                    ? `最高默契選項為「<strong class="text-[#37352F]">${escapeHtml(sortedGroups[0].display)}</strong>」（共 ${sortedGroups[0].count} 人相同）`
+                    : '大家的靈感各有特色，下一題再挑戰全員一致吧！'}
+                </p>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              ${distributionHtml}
+            </div>
+          `;
+        }
+      }
+
+      /**
+       * 18. 更新房主控制台內的即時作答統計與按鈕狀態
+       */
+      function renderHostConsoleStatus() {
+        const { status, answers } = state.roomData;
+        const players = Object.keys(answers);
+
+        dom.hostAnsweredCount.textContent = String(players.length);
+
+        if (players.length === 0) {
+          dom.hostPlayerPills.innerHTML = '<span class="text-[11px] text-[#787774]/70">尚無玩家送出答案</span>';
+        } else {
+          dom.hostPlayerPills.innerHTML = players
+            .map(
+              (name) =>
+                `<span class="px-2 py-0.5 rounded-md bg-[#F7F6F3] border border-[#E9E9E7] text-[11px] font-medium text-[#37352F]">${escapeHtml(name)}</span>`
+            )
+            .join('');
+        }
+
+        dom.hostRevealBtn.disabled = status !== 'playing' || players.length === 0;
+      }
+
+      /**
+       * 19. HTML 跳脫防 XSS 輔助函式
+       */
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+      /**
+       * 20. 驗證玩家暱稱（若為空則聚焦並高亮提示）
+       */
+      function validateNickname() {
+        const cleanName = dom.playerNameInput.value.trim();
+        if (!cleanName) {
+          dom.playerNameInput.classList.add('border-[#C59B92]', 'ring-2', 'ring-[#C59B92]/40', 'bg-[#FBF6F5]');
+          dom.nicknameErrorMsg.classList.remove('hidden');
+          dom.playerNameInput.focus();
+          return null;
+        }
+        dom.playerNameInput.classList.remove('border-[#C59B92]', 'ring-2', 'ring-[#C59B92]/40', 'bg-[#FBF6F5]');
+        dom.nicknameErrorMsg.classList.add('hidden');
+        return cleanName;
+      }
+
+      /**
+       * 21. 進入遊戲房間視圖並啟動輪詢
+       */
+      async function activateGameRoom({ roomCode, playerName, asHost = false, demoMode = false }) {
+        state.room = roomCode;
+        state.playerName = playerName;
+        state.isHostMode = asHost;
+        state.isDemoMode = demoMode;
+        state.lastRenderedSignature = '';
+
+        try {
+          localStorage.setItem('telepathy_nickname', playerName);
+        } catch (e) {}
+
+        const newUrl = `${window.location.pathname}?room=${encodeURIComponent(roomCode)}`;
+        window.history.replaceState({}, '', newUrl);
+
+        dom.headerRoomCode.textContent = roomCode;
+        dom.headerPlayerName.textContent = playerName;
+
+        dom.loginView.classList.add('hidden');
+        dom.appHeader.classList.remove('hidden');
+        dom.gameView.classList.remove('hidden');
+        dom.hostTriggerBtn.classList.remove('hidden');
+        dom.hostTriggerBtn.classList.add('inline-flex');
+
+        if (demoMode) {
+          dom.demoModeBanner.classList.remove('hidden');
+          state.demoStore = { status: 'setup', question: '', answers: {} };
+        } else {
+          dom.demoModeBanner.classList.add('hidden');
+        }
+
+        if (asHost) {
+          openHostDrawer();
+        }
+
+        await fetchRoomState();
+        startPolling();
+      }
+
+      /**
+       * 22. 建立新房間流程（含載入中狀態與 GAS 錯誤診斷）
+       */
+      async function handleCreateRoom() {
+        const cleanName = validateNickname();
+        if (!cleanName) return;
+
+        const roomCode = (dom.generatedRoomCode.textContent || generateRoomCode()).trim().toUpperCase();
+        dom.gasDiagnosticCallout.classList.add('hidden');
+
+        // 切換按鈕為載入狀態
+        dom.createRoomSubmit.disabled = true;
+        dom.createRoomIcon.classList.add('hidden');
+        dom.createRoomSpinner.classList.remove('hidden');
+        dom.createRoomBtnText.textContent = '建立房間中...';
+
+        try {
+          state.room = roomCode;
+          state.isDemoMode = false;
+          await postGasAction({ action: 'reset' });
+
+          showToast(`已成功建立房間 #${roomCode}！`, 'success');
+          await activateGameRoom({
+            roomCode,
+            playerName: cleanName,
+            asHost: true,
+            demoMode: false,
+          });
+        } catch (error) {
+          console.error('建立房間失敗:', error);
+          dom.gasErrorDetail.textContent = error.message || '無法連線至 Google Apps Script 伺服器。';
+          dom.gasDiagnosticCallout.classList.remove('hidden');
+          showToast('建立雲端房間失敗，請檢視下方連線診斷資訊', 'error');
+        } finally {
+          dom.createRoomSubmit.disabled = false;
+          dom.createRoomIcon.classList.remove('hidden');
+          dom.createRoomSpinner.classList.add('hidden');
+          dom.createRoomBtnText.textContent = '建立新房間 (當房主)';
+        }
+      }
+
+      /**
+       * 23. 加入現有房間流程
+       */
+      async function handleJoinRoom(e) {
+        e.preventDefault();
+        const cleanName = validateNickname();
+        if (!cleanName) return;
+
+        const cleanRoom = dom.joinRoomInput.value.trim().toUpperCase();
+        if (!cleanRoom) {
+          dom.joinRoomInput.classList.add('border-[#C59B92]', 'ring-2', 'ring-[#C59B92]/40');
+          dom.joinRoomErrorMsg.classList.remove('hidden');
+          dom.joinRoomInput.focus();
+          return;
+        }
+        dom.joinRoomInput.classList.remove('border-[#C59B92]', 'ring-2', 'ring-[#C59B92]/40');
+        dom.joinRoomErrorMsg.classList.add('hidden');
+
+        showToast(`正在進入房間 #${cleanRoom}...`, 'info');
+        await activateGameRoom({
+          roomCode: cleanRoom,
+          playerName: cleanName,
+          asHost: false,
+          demoMode: false,
+        });
+      }
+
+      /**
+       * 24. 離開房間並停止輪詢
+       */
+      function leaveRoom() {
+        stopPolling();
+        state.room = '';
+        state.isDemoMode = false;
+        state.localSubmittedAnswer = '';
+        state.isEditingAnswer = false;
+        state.lastRenderedSignature = '';
+
+        closeHostDrawer();
+        dom.hostTriggerBtn.classList.add('hidden');
+        dom.hostTriggerBtn.classList.remove('inline-flex');
+        dom.appHeader.classList.add('hidden');
+        dom.gameView.classList.add('hidden');
+        dom.loginView.classList.remove('hidden');
+
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+
+      /**
+       * 25. 輪詢定時器控制
+       */
+      function startPolling() {
+        stopPolling();
+        state.pollTimer = setInterval(() => {
+          fetchRoomState();
+        }, POLL_INTERVAL_MS);
+      }
+
+      function stopPolling() {
+        if (state.pollTimer) {
+          clearInterval(state.pollTimer);
+          state.pollTimer = null;
+        }
+      }
+
+      /**
+       * 26. 房主控制台抽屜開關
+       */
+      function openHostDrawer() {
+        dom.hostDrawer.classList.remove('hidden');
+      }
+
+      function closeHostDrawer() {
+        dom.hostDrawer.classList.add('hidden');
+      }
+
+      function toggleHostDrawer() {
+        if (dom.hostDrawer.classList.contains('hidden')) {
+          openHostDrawer();
+        } else {
+          closeHostDrawer();
+        }
+      }
+
+      /**
+       * 27. 綁定所有事件監聽器並初始化頁面狀態
+       */
+      function bootstrap() {
+        // 還原儲存的暱稱
+        try {
+          const savedName = localStorage.getItem('telepathy_nickname');
+          if (savedName) dom.playerNameInput.value = savedName;
+        } catch (e) {}
+
+        // 初始化預設 4 碼英數房號
+        dom.generatedRoomCode.textContent = generateRoomCode();
+
+        // 檢查網址是否有 ?room=XXXX 邀請參數
+        const params = new URLSearchParams(window.location.search);
+        const roomParam = params.get('room');
+        if (roomParam && roomParam.trim()) {
+          const cleanParam = roomParam.trim().toUpperCase();
+          dom.joinRoomInput.value = cleanParam;
+          dom.prefillRoomLabel.textContent = `#${cleanParam}`;
+          dom.invitePrefillBanner.classList.remove('hidden');
+        }
+
+        // 輸入暱稱時即時清除紅框提示
+        dom.playerNameInput.addEventListener('input', () => {
+          if (dom.playerNameInput.value.trim()) {
+            dom.playerNameInput.classList.remove('border-[#C59B92]', 'ring-2', 'ring-[#C59B92]/40', 'bg-[#FBF6F5]');
+            dom.nicknameErrorMsg.classList.add('hidden');
+          }
+        });
+
+        // 加入房號輸入框自動轉大寫
+        dom.joinRoomInput.addEventListener('input', () => {
+          dom.joinRoomInput.value = dom.joinRoomInput.value.toUpperCase();
+          if (dom.joinRoomInput.value.trim()) {
+            dom.joinRoomInput.classList.remove('border-[#C59B92]', 'ring-2', 'ring-[#C59B92]/40');
+            dom.joinRoomErrorMsg.classList.add('hidden');
+          }
+        });
+
+        // 重新產生隨機房號
+        dom.rerollRoomBtn.addEventListener('click', () => {
+          dom.generatedRoomCode.textContent = generateRoomCode();
+        });
+
+        // 建立新房間 (當房主)
+        dom.createRoomSubmit.addEventListener('click', handleCreateRoom);
+
+        // 本機模擬模式進入預覽
+        dom.enterDemoModeBtn.addEventListener('click', async () => {
+          const cleanName = validateNickname();
+          if (!cleanName) return;
+          const roomCode = (dom.generatedRoomCode.textContent || generateRoomCode()).trim().toUpperCase();
+          showToast(`已進入本機模擬房間 #${roomCode}`, 'info');
+          await activateGameRoom({
+            roomCode,
+            playerName: cleanName,
+            asHost: true,
+            demoMode: true,
+          });
+        });
+
+        // 加入現有房間
+        dom.joinRoomForm.addEventListener('submit', handleJoinRoom);
+
+        // 複製邀請連結
+        dom.copyInviteBtn.addEventListener('click', () => {
+          const inviteUrl = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(state.room)}`;
+          const copied = copyTextToClipboard(inviteUrl);
+          if (copied) {
+            showToast(`已複製房間 #${state.room} 邀請連結！`, 'success');
+          } else {
+            showToast(`房間號碼為 #${state.room}，請分享給同組夥伴`, 'info');
+          }
+        });
+
+        // 離開房間
+        dom.leaveRoomBtn.addEventListener('click', leaveRoom);
+
+        // 等待畫面快速開啟房主控制台按鈕
+        dom.setupOpenHostBtn.addEventListener('click', openHostDrawer);
+
+        // 玩家送出答案
+        dom.submitAnswerForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const answerText = dom.answerInput.value.trim();
+          if (!answerText) {
+            showToast('請輸入答案後再送出', 'warning');
+            dom.answerInput.focus();
+            return;
+          }
+
+          dom.submitAnswerBtn.disabled = true;
+          dom.submitAnswerBtn.textContent = '傳送中...';
+
+          try {
+            await postGasAction({
+              action: 'submit_answer',
+              playerName: state.playerName,
+              answer: answerText,
+            });
+
+            state.localSubmittedAnswer = answerText;
+            state.isEditingAnswer = false;
+            state.roomData.answers[state.playerName] = answerText;
+            renderGameArena(state.roomData.status);
+            renderHostConsoleStatus();
+            showToast('感應答案已鎖定送出！', 'success');
+          } catch (err) {
+            showToast(err.message || '送出答案失敗，請再試一次', 'error');
+          } finally {
+            dom.submitAnswerBtn.disabled = false;
+            dom.submitAnswerBtn.textContent = '送出答案';
+          }
+        });
+
+        // 修改答案
+        dom.editAnswerBtn.addEventListener('click', () => {
+          state.isEditingAnswer = true;
+          dom.answerInput.value = state.localSubmittedAnswer;
+          renderGameArena(state.roomData.status);
+          dom.answerInput.focus();
+        });
+
+        // 房主控制台開關與快捷鍵 Alt + H
+        dom.hostTriggerBtn.addEventListener('click', toggleHostDrawer);
+        dom.closeHostDrawerBtn.addEventListener('click', closeHostDrawer);
+        document.addEventListener('keydown', (e) => {
+          if (e.altKey && (e.key === 'h' || e.key === 'H') && state.room) {
+            e.preventDefault();
+            toggleHostDrawer();
+          }
+        });
+
+        // 房主：隨機默契題庫
+        dom.randomPromptBtn.addEventListener('click', () => {
+          let nextIdx = Math.floor(Math.random() * PROMPT_BANK.length);
+          if (nextIdx === state.lastPromptIndex && PROMPT_BANK.length > 1) {
+            nextIdx = (nextIdx + 1) % PROMPT_BANK.length;
+          }
+          state.lastPromptIndex = nextIdx;
+          dom.hostQuestionInput.value = PROMPT_BANK[nextIdx];
+          dom.hostQuestionInput.focus();
+        });
+
+        // 房主：發布題目並開始
+        dom.hostSetQuestionBtn.addEventListener('click', async () => {
+          const questionText = dom.hostQuestionInput.value.trim();
+          if (!questionText) {
+            showToast('請先輸入題目或點擊「隨機默契題庫」', 'warning');
+            dom.hostQuestionInput.focus();
+            return;
+          }
+
+          dom.hostSetQuestionBtn.disabled = true;
+          try {
+            await postGasAction({
+              action: 'set_question',
+              question: questionText,
+            });
+            showToast('題目已發布，全場開始作答！', 'success');
+            await fetchRoomState();
+          } catch (err) {
+            showToast(err.message || '發布題目失敗，請檢查連線', 'error');
+          } finally {
+            dom.hostSetQuestionBtn.disabled = false;
+          }
+        });
+
+        // 房主：全場同步開牌
+        dom.hostRevealBtn.addEventListener('click', async () => {
+          dom.hostRevealBtn.disabled = true;
+          try {
+            await postGasAction({ action: 'reveal' });
+            showToast('已觸發全場同步開牌！', 'success');
+            await fetchRoomState();
+          } catch (err) {
+            dom.hostRevealBtn.disabled = false;
+            showToast(err.message || '開牌指令失敗，請再試一次', 'error');
+          }
+        });
+
+        // 房主：重置本局 (回到等待) 兩段式確認
+        dom.hostResetBtn.addEventListener('click', async () => {
+          if (!state.isResetConfirming) {
+            state.isResetConfirming = true;
+            dom.hostResetLabel.textContent = '再點一次確認重置';
+            dom.hostResetBtn.classList.add('bg-[#C59B92]/20', 'border-[#C59B92]', 'text-[#9E675C]');
+
+            clearTimeout(state.resetConfirmTimer);
+            state.resetConfirmTimer = setTimeout(() => {
+              state.isResetConfirming = false;
+              dom.hostResetLabel.textContent = '重置本局 (回到等待)';
+              dom.hostResetBtn.classList.remove('bg-[#C59B92]/20', 'border-[#C59B92]', 'text-[#9E675C]');
+            }, 3500);
+            return;
+          }
+
+          clearTimeout(state.resetConfirmTimer);
+          state.isResetConfirming = false;
+          dom.hostResetLabel.textContent = '重置中...';
+          dom.hostResetBtn.disabled = true;
+
+          try {
+            await postGasAction({ action: 'reset' });
+            dom.hostQuestionInput.value = '';
+            showToast('本局已重置，回到等待出題狀態', 'info');
+            await fetchRoomState();
+          } catch (err) {
+            showToast(err.message || '重置失敗，請再試一次', 'error');
+          } finally {
+            dom.hostResetBtn.disabled = false;
+            dom.hostResetLabel.textContent = '重置本局 (回到等待)';
+            dom.hostResetBtn.classList.remove('bg-[#C59B92]/20', 'border-[#C59B92]', 'text-[#9E675C]');
+          }
+        });
+      }
+
+      bootstrap();
+    });
+  </script>
+</body>
+</html>
